@@ -1,0 +1,31 @@
+#+title: velpa – Velppa's Emacs Lisp Package Archive
+#+date: <2024-06-15 Sat>
+
+This repository holds Emacs Lisp packages I stored in my Dotfiles.
+Some of the packages are clones from Emacs Wiki, some have added
+tweaks that I haven't yet submitted upstream or too lazy to advise.
+Some packages are mine but they are small and don't deserve a separate
+repository.
+
+Inspired by [[https://github.com/alphapapa/unpackaged.el/tree/master][alphapapa/unpackaged.el: A collection of useful Emacs Lisp
+code that isn't substantial enough to be packaged]].
+
+* Usage
+1. Clone the repository
+   #+begin_src sh
+cd ~/Developer/src/github.com/velppa
+git clone https://github.com/velppa/velpa.git
+   #+end_src
+
+2. Add it to =load-path=:
+   #+begin_src emacs-lisp
+(add-to-list 'load-path "~/Developer/src/github.com/velppa/velpa")
+   #+end_src
+
+3. Require or use-package.  With =quartz.el= example:
+   #+begin_src emacs-lisp
+(require 'quartz)
+   #+end_src
+
+* Licence
+MIT
