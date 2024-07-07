@@ -3,8 +3,8 @@
 ;; Copyright (C) 2023 Pavel Popov
 
 ;; Author: Pavel Popov
-;; Keywords: snowflake, clojure, sider
-;; Version: 0.01
+;; Keywords: snowflake, clojure, cider
+;; Version: 1.0
 
 ;;; License:
 
@@ -71,6 +71,7 @@
 				"value")))
 		result0)))
       (unless (car result0) (setq result0 '("No data found")))
+      (setq result0 `(,(string-replace "-+-" "-|-" (car result0))))
       (ob-clojure-string-or-list
        (reverse (delete "" (mapcar (lambda (r)
 				     (replace-regexp-in-string "nil" "" r))
@@ -96,8 +97,8 @@
      (thread-last
        ;; first item is a block of Clojure code
        `(do
-            (require '[velppa.snowflake :as sf])
-            (sf/execute-print! [,body] :role ,role))
+         (require '[velppa.snowflake :as sf])
+         (sf/execute-print! [,body] :role ,role))
        prin1-to-string)
      params)))
 

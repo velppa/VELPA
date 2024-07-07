@@ -1,4 +1,3 @@
-
 ;;; ol-eww.el --- Store URL and kill from Eww mode    -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2023 Free Software Foundation, Inc.

@@ -19,11 +19,13 @@
 (defvar quartz-target-dir "~/Developer/src/github.com/velppa/velppa.github.io"
   "Target directory for Quartz export.")
 
+(defvar quartz-source-directories '("~/Documents/Notes")
+  "List of source directories to find notes to publish.")
 
 (defun quartz-publish (dir)
   "Publish Quartz files from DIR containing Org Mode files."
   (interactive
-   (list (completing-read "Directory: " '("~/Documents/Notes"))))
+   (list (completing-read "Directory: " quartz-source-directories)))
   (delete-directory (file-name-concat quartz-target-dir "content") t)
   ;; (make-directory (file-name-concat quartz-target-dir "static/"))
   (dolist (f (quartz-published-notes dir))
@@ -42,6 +44,12 @@
   (let ((default-directory quartz-target-dir))
     (async-shell-command "make build" "*quartz*"))
   (message "Quartz files and assets published."))
+
+(defun quartz-run ()
+  "Run Quartz local webserver."
+  (interactive)
+  (let ((default-directory quartz-target-dir))
+    (async-shell-command "make run" "*quartz-server*")))
 
 
 (comment
