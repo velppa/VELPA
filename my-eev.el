@@ -2,6 +2,7 @@
 ;; (require 'eev)
 (require 'eev-load)
 (require 'eev-aliases)
+(require 'eev-videolinks)
 
 ;;; Code
 
@@ -13,13 +14,17 @@
                               (string-to-number (match-string 2 str))))))))
 
 
-(defun find-youtube-video (id &optional time)
-  (browse-url (format "http://yewtu.be/watch?v=%s%s"
-	              id (or (ee-time-to-youtube-time (or time "")) ""))))
+;; (defun find-youtube-video (id &optional time)
+;;   (browse-url (format "http://yewtu.be/watch?v=%s%s"
+;; 	              id (or (ee-time-to-youtube-time (or time "")) ""))))
 
+
+(setq ee-find-eev-video-function 'find-eevyoutube-video)
+;; (setq ee-find-youtube-video-program 'find-firefox)
+(setq ee-find-youtube-video-program 'browse-url)
 
 ;; (find-bgprocess-ne `("/Applications/Safari.app/Contents/MacOS/Safari"))
-
+;; (ee-find-youtube-video "hOAqBc42Gg8" "6:25")
 
 (comment
  (ee-time-to-youtube-time "4:04") ;; "&t=244"
