@@ -424,8 +424,9 @@ The value is \"/\" when `dired-directory' is at the root of the files system."
    'timu-line-fancy-face 'timu-line-inactive-face
    (propertize
     (concat
-     "  m:"
-     (substring (symbol-name major-mode) 0 -5))
+     "  ("
+     (substring (symbol-name major-mode) 0 -5)
+     ")")
     'face face)))
 
 (defun timu-line-vc-branch ()
@@ -436,7 +437,7 @@ The value is \"/\" when `dired-directory' is at the root of the files system."
     (if timu-line-show-vc-branch
         (if vc-mode
             (let ((backend (vc-backend buffer-file-name)))
-              (concat "  b:"
+              (concat "  git:"
                       (substring-no-properties
                        vc-mode
                        (+ (if (eq backend 'Hg) 2 3) 2))))
@@ -471,8 +472,10 @@ The value is \"/\" when `dired-directory' is at the root of the files system."
    (propertize
     (if timu-line-show-eglot-indicator
         (if (bound-and-true-p eglot--managed-mode)
-            " l:eglot"
-          "")
+            (let* ((server (eglot-current-server))
+                   (nick (and server (eglot-project-nickname server))))
+              (format " lsp:%s" nick))
+            ""
       "")
     'face face)))
 
@@ -660,7 +663,7 @@ aligned respectively."
 (defun timu-line-activate-mode-line ()
   "Set the `mode-line-format' to the custom value of the `timu-line-mode'."
   (add-hook 'post-command-hook #'timu-line-update-selected-window)
-  (customize-set-variable 'mode-line-position-column-line-format '(" %c "))
+  (customize-set-variable 'mode-line-position-column-line-format '(" %l,%c "))
   (customize-set-variable 'mode-line-percent-position nil)
   (customize-set-variable 'evil-mode-line-format nil)
   (setq mode-line-format nil)
@@ -693,10 +696,11 @@ aligned respectively."
                             (timu-line-major-mode)
                             timu-line-spacer-bottom
                             (timu-line-unread-mu4e-count)
-                            (timu-line-tab-number)
-                            (timu-line-position)
+                            ;; (timu-line-tab-number)
+                            ;; (timu-line-position)
                             (timu-line-popper-indicator)
-                            (timu-line-end-space))))))))
+                            (timu-line-end-space)))))))
+
 
 ;;;###autoload
 (define-minor-mode timu-line-mode
