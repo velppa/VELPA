@@ -5,7 +5,7 @@
 ;; Licensed under the same terms as Emacs.
 
 ;; Author: u/yxhuvud
-;; Maintainer: Pavel Popov (https://github.com/pavel-popov)
+;; Maintainer: Pavel Popov (https://github.com/velppa)
 ;; Created: July 2 2020
 ;; Version: 0.1
 ;; Keywords: find-file, os-integration

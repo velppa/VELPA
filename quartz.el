@@ -19,6 +19,9 @@
 (defvar quartz-target-dir "~/Developer/src/github.com/velppa/velppa.github.io"
   "Target directory for Quartz export.")
 
+(defvar quartz-default-directory "posts"
+  "Default subdirectory for posts.")
+
 (defvar quartz-source-directories '("~/Documents/Notes")
   "List of source directories to find notes to publish.")
 
@@ -44,7 +47,7 @@
   (dolist (f (quartz-exported-notes dir))
     (with-current-buffer (find-file-noselect (file-name-concat dir f))
       (let ((org-hugo-base-dir quartz-target-dir)
-            (org-hugo-default-section-directory "notes")
+            (org-hugo-default-section-directory quartz-default-directory)
             (org-export-use-babel nil)
             (org-export-with-tags nil)
             (org-export-with-todo-keywords nil)
@@ -64,7 +67,7 @@
   "Export current Org file into Quartz markdown file."
   (interactive)
   (let ((org-hugo-base-dir quartz-target-dir)
-        (org-hugo-default-section-directory "notes")
+        (org-hugo-default-section-directory quartz-default-directory)
         (org-export-use-babel nil)
         (org-export-with-tags nil)
         (org-export-with-todo-keywords nil)
