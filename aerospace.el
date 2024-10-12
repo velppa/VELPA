@@ -48,23 +48,25 @@
     (on-focused-monitor-changed . ("move-mouse monitor-lazy-center")))
   "Root AeroSpace configuration")
 
-
 (defvar aerospace-modes-config
   `((mode.main.binding
-     .  ,(append '((cmd-shift-7 . "layout h_tiles")
-                   (cmd-shift-6 . "layout h_accordion")
-                   (cmd-shift-8 . "focus left")  ;; left parenthesis
-                   (cmd-shift-9 . "focus right") ;; right parenthesis
-                   ;;
-                   (alt-tab . "workspace-back-and-forth")
-                   (alt-shift-tab . "move-workspace-to-monitor --wrap-around next")
-                   ;;
-                   (cmd-left . "focus left")
-                   (cmd-down . "focus down")
-                   (cmd-up . "focus up")
-                   (cmd-right . "focus right")
-                   ;;
-                   (f9 . "mode keys"))
+     . ,(append '((cmd-shift-7 . "layout h_tiles")
+                  (cmd-shift-6 . "layout h_accordion")
+                  (cmd-shift-9 . "focus left")
+                  (cmd-shift-0 . "focus right")
+                  ;;
+                  (alt-tab . "workspace-back-and-forth")
+                  (alt-shift-tab . "move-workspace-to-monitor --wrap-around next")
+                  ;;
+                  (cmd-left . "focus left")
+                  (cmd-down . "focus down")
+                  (cmd-up . "focus up")
+                  (cmd-right . "focus right")
+                  ;;
+                  (f9 . "mode keys")
+                  (f13 . "mode keys")
+                  ;; (tick . "mode keys")
+                  )
                 (mapcar (lambda (x)
                           (cons (make-symbol (format "alt-%s" x))
                                 (format "workspace %s" x)))
@@ -72,13 +74,24 @@
     (mode.keys.binding
      . ,(append '((esc . "mode main")
                   (f9 . "mode main")
+                  (f13 . "mode main")
+                  (g . "mode main")
+                  (tab . "mode main")
+                  ;;
                   (period . "layout tiles horizontal vertical")
                   (comma . "layout accordion horizontal vertical")
                   ;;
-                  (h . "move left")
-                  (j . "move down")
-                  (k . "move up")
-                  (l . "move right")
+                  (m . "mode move")
+                  ;;
+                  (y . ("focus left" "mode main"))
+                  (u . ("focus down" "mode main"))
+                  (i . ("focus up" "mode main"))
+                  (o . ("focus right" "mode main"))
+                  ;;
+                  (h . "focus left")
+                  (j . "focus down")
+                  (k . "focus up")
+                  (l . "focus right")
                   ;;
                   (minus . "resize smart -50")
                   (equal . "resize smart +50")
@@ -93,12 +106,18 @@
                   (up . "focus up")
                   (right . "focus right"))
                 (mapcar (lambda (x)
-                          (cons (make-symbol (format "alt-%s" x))
+                          (cons (make-symbol (format "%s" x))
                                 (format "workspace %s" x)))
-                        (number-sequence 0 9))
+                        (number-sequence 0 9))))
+    (mode.move.binding
+     . ,(append '((h . ("move left" "mode main"))
+                  (j . ("move down" "mode main"))
+                  (k . ("move up" "mode main"))
+                  (l . ("move right" "mode main"))
+                  (m . ("move-workspace-to-monitor --wrap-around next" "mode main")))
                 (mapcar (lambda (x)
                           (cons (make-symbol (format "%s" x))
-                                (format "move-node-to-workspace %s" x)))
+                                (list (format "move-node-to-workspace %s" x) "mode main")))
                         (number-sequence 0 9)))))
   "AeroSpace mode bindings configuration")
 
@@ -121,16 +140,19 @@
 
 ;;;; Commands
 
+(defun aerospace-encode-config ()
+  (tomelr-encode
+   (append
+    aerospace-root-config
+    aerospace-modes-config
+    (list (aerospace-gap-block aerospace-gap)))))
+
 ;;;###autoload
 (defun aerospace-apply ()
   "Write current AeroSpace configuration into a file and reload-config."
   (interactive)
   (with-temp-file aerospace-config-file-path
-    (insert (tomelr-encode
-             (append
-              aerospace-root-config
-              aerospace-modes-config
-              (list (aerospace-gap-block aerospace-gap))))))
+    (insert (aerospace-encode-config)))
   (start-process "aerospace" nil "aerospace" "reload-config")
   (message "AeroSpace config reloaded."))
 

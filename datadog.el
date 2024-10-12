@@ -32,101 +32,134 @@
 
 ;;;; Commands
 
+(defun datadog--browse-url (prefix params)
+  (thread-last
+    (mapconcat (lambda (x)
+                 (pcase-let ((`(,k ,v) x))
+                   (format "%s=%s" k (url-hexify-string (format "%s" v)))))
+               params "&")
+    (format prefix)
+    browse-url))
+
+(defun datadog--get-time-bounds (args)
+  "Return PLIST with keys :from and :to for time bounds."
+  (message "args: %s" args)
+  (let* ((to (or (plist-get args :to) (ts-now)))
+         (from (append (or (plist-get args :from) '(day -14)) `(,to)))
+         (milliseconds (lambda (x) (thread-last x ts-unix truncate (* 1000)))))
+    (list
+     :from (funcall milliseconds (apply #'ts-adjust from))
+     :to (funcall milliseconds to))))
+
+(comment
+ (datadog--get-time-bounds)
+ ;; (:from 1727085975000 :to 1728295575000)
+ (datadog--get-time-bounds '(:from hour -2))
+ ;; (:from 1727088040000 :to 1728297640000)
+ ;; (:from 1728289907000 :to 1728297107000)
+ ;; (:from-ts 1728287370 :to-ts 1728294570)
+ (pcase-let
+     ((`(:from ,from :to ,to) (datadog--get-time-bounds '(:from (hour -2)))))
+   (message "from: %s, to: %s" from to))
+ ;; "from: 1727086800000, to: 1728296400000"
+ )
+
 ;;;###autoload
-(defun datadog-browse-logs (query &optional cols days)
-  "Browse logs for QUERY for past DAYS, exposing columns COLS."
+(defun datadog-browse-logs (query &rest args)
+  "Browse logs for QUERY using ARGS plist with optional parameters."
   (interactive "sQuery: ")
-  (let* ((days (or days 14))
-         (cols (or cols "host,service"))
-         (to-ts (time-convert (current-time) 'integer))
-         (from-ts (time-convert (time-add to-ts (* days -24 60 60)) 'integer))
-         (params `((live "true")
-                   (viz "stream")
-                   (from_ts ,(* from-ts 1000))
-                   (to_ts ,(* to-ts 1000))
-                   (stream_sort "desc")
-                   (storage "hot")
-                   (refresh_mode "sliding")
-                   (messageDisplay "inline")
-                   (fromUser "true")
-                   (cols ,cols)
-                   (query ,(thread-last
-                             query
-                             (string-replace "[" "\\[")
-                             (string-replace "]" "\\]")
-                             url-encode-url))
-                   (agg_t "count")
-                   (agg_m_source "base")
-                   (agg_m "count")))
-         (param-str (mapconcat (lambda (x) (format "%s=%s" (car x) (cadr x))) params "&")))
-    (browse-url (format "https://app.datadoghq.com/logs?%s" param-str))))
+  (pcase-let
+      ((`(:from ,from :to ,to) (datadog--get-time-bounds args)))
+    (let* ((cols (or (plist-get args :columns) "host,service"))
+           (params `((live "true")
+                     (viz "stream")
+                     (from_ts ,from)
+                     (to_ts ,to)
+                     (stream_sort "desc")
+                     (storage "hot")
+                     (refresh_mode "sliding")
+                     (messageDisplay "inline")
+                     (fromUser "true")
+                     (cols ,cols)
+                     (query ,(thread-last
+                               query
+                               (string-replace "[" "\\[")
+                               (string-replace "]" "\\]")))
+                     (agg_t "count")
+                     (agg_m_source "base")
+                     (agg_m "count"))))
+      (datadog--browse-url
+       "https://app.datadoghq.com/logs?%s"
+       params))))
 
-(defun datadog-browse-events (query &optional cols days)
-  "Browse events for QUERY for past DAYS, exposing columns COLS."
+(defun datadog-browse-events (query &rest args)
+  "Browse events for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
-  (let* ((days (or days 14))
-         (cols (or cols "host,service"))
-         (to-ts (time-convert (current-time) 'integer))
-         (from-ts (time-convert (time-add to-ts (* days -24 60 60)) 'integer))
-         (params
-          `((live "false")
-            (from_ts ,(* from-ts 1000))
-            (to_ts ,(* to-ts 1000))
-            (sort "DESC")
-            (refresh_mode "paused")
-            (options "")
-            (messageDisplay "expanded-lg")
-            (cols "")
-            (query ,(thread-last
-                      query
-                      url-encode-url))))
-         (param-str (mapconcat (lambda (x) (format "%s=%s" (car x) (cadr x))) params "&")))
-    (browse-url (format "https://app.datadoghq.com/event/explorer?%s" param-str))))
+  (pcase-let
+      ((`(:from ,from :to ,to) (datadog--get-time-bounds args)))
+    (let* ((cols (or (plist-get args :columns) "host,service"))
+           (params
+            `((live "false")
+              (from_ts ,from)
+              (to_ts ,to)
+              (sort "DESC")
+              (refresh_mode "paused")
+              (options "")
+              (messageDisplay "expanded-lg")
+              (cols "")
+              (query ,query))))
+      (datadog--browse-url
+       "https://app.datadoghq.com/event/explorer?%s"
+       params))))
 
-(defun datadog-browse-traces (query &optional cols days)
-  "Browse traces for QUERY for past DAYS, exposing columns COLS."
+(defun datadog-browse-traces (query &rest args)
+  "Browse traces for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
-  (let* ((days (or days 14))
-         (cols (or cols "service,resource_name,@duration,@http.method,@http.status_code,@_span.count,@_duration.by_service,@error.message,operation_name,@http.url"))
-         (to-ts (time-convert (current-time) 'integer))
-         (from-ts (time-convert (time-add to-ts (* days -24 60 60)) 'integer))
-         (params
-          `((paused "false")
-            (start ,(* from-ts 1000))
-            (end ,(* to-ts 1000))
-            (view "spans")
-            (spanType "all")
-            (sort "time")
-            (shouldShowLegend "true")
-            (query_translation_version "v0")
-            (messageDisplay "inline")
-            (historicalData "true")
-            (graphType "flamegraph")
-            (fromUser "false")
-            (cols ,cols)
-            (agg_t "count")
-            (agg_m_source "base")
-            (agg_m "count")
-            (query ,(thread-last
-                      query
-                      url-encode-url))))
-         (param-str (mapconcat (lambda (x) (format "%s=%s" (car x) (cadr x))) params "&")))
-    (browse-url (format "https://app.datadoghq.com/apm/traces?%s" param-str))))
+  (pcase-let
+      ((`(:from ,from :to ,to) (datadog--get-time-bounds args)))
+    (let* ((cols (or (plist-get args :columns) "service,resource_name,@duration,@http.method,@http.status_code,@_span.count,@_duration.by_service,@error.message,operation_name,@http.url"))
+           (params
+            `((paused "false")
+              (start ,from)
+              (end ,to)
+              (view "spans")
+              (spanType "all")
+              (sort "time")
+              (shouldShowLegend "true")
+              (query_translation_version "v0")
+              (messageDisplay "inline")
+              (historicalData "true")
+              (graphType "flamegraph")
+              (fromUser "false")
+              (cols ,cols)
+              (agg_t "count")
+              (agg_m_source "base")
+              (agg_m "count")
+              (query ,query))))
+      (datadog--browse-url
+       "https://app.datadoghq.com/apm/traces?%s"
+       params))))
 
+(defun datadog-pods (query &rest args)
+  (let* ((params
+          `((panel_tab "yaml")
+            (explorer-na-groups "false")
+            (query ,query))))
+    (datadog--browse-url
+     "https://app.datadoghq.com/orchestration/explorer/pod?%s"
+     params)))
 
-;;;; Functions
-
-;;;;; Public
-
-(defun datadog-foo (args)
-  "Return foo for ARGS."
-  (foo args))
-
-;;;;; Private
-
-(defun datadog--bar (args)
-  "Return bar for ARGS."
-  (bar args))
+(defun datadog-nodes (query &rest args)
+  (pcase-let
+      ((`(:groups ,groups) args))
+    (let* ((params
+            `((panel_tab "yaml")
+              (groups ,(or groups "label#eks.vio.com/nodegroup"))
+              (explorer-na-groups "false")
+              (query ,query))))
+      (datadog--browse-url
+       "https://app.datadoghq.com/orchestration/explorer/node?%s"
+       params))))
 
 ;;;; Footer
 
