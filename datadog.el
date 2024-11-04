@@ -161,6 +161,62 @@
        "https://app.datadoghq.com/orchestration/explorer/node?%s"
        params))))
 
+(defvar datadog-metrics-notebook-id
+  0 "Notebook ID to create metrics cells in.")
+
+(defvar datadog-metrics-default-span
+  "4h" "Default span Datadog metrics")
+
+(cl-defun datadog-metrics (&key queries
+                                (display-type "line")
+                                (span datadog-metrics-default-span)
+                                (graph-size "xl"))
+  "Create a new cell in a notebook with the provided queries and browse the notebook."
+  (let* ((request `((display_type . ,display-type)
+                    (response_format . "timeseries")
+                    (queries . ,(cl-mapcar
+                                 (lambda (query idx)
+                                   `((data_source . "metrics")
+                                     (name . ,(format "%c" idx))
+                                     (query . ,query)))
+                                 queries
+                                 (range-uncompress '(?a . ?z))))
+                    (style . ((line_type . "solid")
+                              (line_width . "normal")
+                              (palette . "dog_classic")))))
+         (cell `((attributes . ((definition . ((requests . (,request))
+                                               (show_legend . t)
+                                               (type . "timeseries")
+                                               (yaxis . ((scale . "linear")))))
+                                (graph_size . ,graph-size)
+                                ;; (id . ,cell-id)
+                                ))
+                 (type . "notebook_cells")))
+         (body `((data . ((attributes . ((cells . (,cell))
+                                         (name . "datadog.el metrics")
+                                         (time . ((live_span . ,span)))))
+                          (type . "notebooks"))))))
+    ;; (json-encode body)
+    (plz 'put (format  "https://api.datadoghq.com/api/v1/notebooks/%s" datadog-metrics-notebook-id)
+      :headers `(("Content-Type" . "application/json")
+                 ("DD-API-KEY" . ,(getenv "DD_API_KEY"))
+                 ("DD-APPLICATION-KEY" . ,(getenv "DD_APP_KEY")))
+      :body (json-encode body)
+      :as #'json-read
+      :then (lambda (alist)
+              (browse-url (format "https://app.datadoghq.com/notebook/%s/datadog-el" datadog-metrics-notebook-id)))
+      :else (lambda (err)
+              (message "Request failed, details in *datadog-errors* buffer")
+              (with-output-to-temp-buffer "*datadog-errors*"
+                (princ (format "Body: %s\n" (json-encode body)))
+                (princ (format "Error: %s" err))) ))))
+
+
+(defun datadog-metric (query)
+  "Plot metric from QUERY in Datadog notebook."
+  (interactive "sQuery: ")
+  (datadog-metrics :queries `(,query)))
+
 ;;;; Footer
 
 (provide 'datadog)
