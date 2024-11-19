@@ -82,6 +82,8 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
     (format prefix)
     browse-url))
 
+(defvar datadog-metrics--time-format "%Y-%m-%dT%H:%M:%S%z")
+
 (cl-defun datadog--get-time-bounds (&key from to)
   "Return PLIST with keys :from and :to for time bounds."
   (let* ((milliseconds (lambda (x) (thread-last x ts-unix truncate (* 1000))))
@@ -93,11 +95,13 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 
 (cl-defun datadog--get-time-bounds-datetime (&key from to)
   "Return PLIST with keys :from and :to for time bounds as datetime string."
-  (let* ((fmt (lambda (x) (ts-format "%Y-%m-%dT%H:%M:%S%z" x)))
+  (let* ((fmt (lambda (x) (if (stringp x) x
+                            (ts-format datadog-metrics--time-format x))))
          (to (or to (ts-now)))
          (from (or from datadog-default-from)))
     (list
-     :from (funcall fmt (apply #'ts-adjust (seq-concatenate 'list from `(,to))))
+     :from (funcall fmt (if (stringp from) from
+                          (apply #'ts-adjust (seq-concatenate 'list from `(,to)))))
      :to (funcall fmt to))))
 
 (comment
@@ -130,14 +134,13 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
  )
 ;;;###autoload
 
-(cl-defun datadog-browse-logs (query &key from to)
+(cl-defun datadog-browse-logs (query &key from to (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
   (interactive "sQuery: ")
   (cl-destructuring-bind
         (&key from to)
       (datadog--get-time-bounds :from from :to to)
-    (let* ((cols (or (plist-get args :columns) "host,service"))
-           (params `((live "true")
+    (let* ((params `((live "true")
                      (viz "stream")
                      (from_ts ,from)
                      (to_ts ,to)
@@ -180,8 +183,8 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
       (datadog--get-time-bounds :from from :to to)
     (let ((params
            `((paused "false")
-             (start ,start)
-             (end ,end)
+             (start ,from)
+             (end ,to)
              (view "spans")
              (spanType "all")
              (sort "time")
@@ -224,24 +227,29 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
               ("DD-APPLICATION-KEY" . ,datadog-app-key))
     :as #'json-read))
 
-(cl-defun datadog-metrics-browse (&key notebook-id notebook)
-  (let ((id (or notebook-id
-                (plist-get datadog-notebooks notebook)
-                (plist-get datadog-notebooks :persistent))))
-    (browse-url (format "https://app.datadoghq.com/notebook/%s/datadog-el" id))))
+(cl-defun datadog-browse-notebook (key)
+  "Browse Datadog notebook with the specified key"
+  (interactive (list (completing-read "Choose notebook: "
+                                      datadog-notebooks)))
+  (let ((id (or (plist-get datadog-notebooks (if (keywordp key) key (intern key)))
+                (user-error "Notebook id is nil"))))
+    (browse-url (format "https://app.datadoghq.com/notebook/%s/" id))))
 
 (cl-defun datadog-metrics
-    (&key queries from to formulas description
+    (&key queries from to formulas
+          description title
           notebook-id notebook
           overwrite
           skip-browse
+          local-time
           (display-type "line")
           (graph-size "xl")
           (span datadog-metrics-default-span))
   "Create a new cell in a notebook with the provided queries and browse the notebook."
   (let* ((notebook-id (or notebook-id
                           (plist-get datadog-notebooks notebook)
-                          (plist-get datadog-notebooks :persistent)))
+                          (plist-get datadog-notebooks :persistent)
+                          (user-error "Notebook can't be found")))
          (current (thread-last (datadog--get-notebook notebook-id)
                                (alist-get 'data)
                                (alist-get 'attributes)))
@@ -270,26 +278,32 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                        (datadog--get-time-bounds-datetime :from from :to to)
                      `((start . ,from) (end . ,to)))
                  `((live_span . ,span))))
-         (cell `((attributes . ((definition . ((requests . (,request))
-                                               (show_legend . t)
-                                               (type . "timeseries")
-                                               (yaxis . ((scale . "linear")))))
-                                (time . ,time)
-                                (graph_size . ,graph-size)))
+         (cell `((attributes . ,(thread-last
+                                  `((definition . ,(thread-last
+                                                     `((requests . (,request))
+                                                       (show_legend . t)
+                                                       (type . "timeseries")
+                                                       (title . ,title)
+                                                       (yaxis . ((scale . "linear"))))
+                                                     (rassq-delete-all nil)))
+                                    (time . ,(when local-time time))
+                                    (graph_size . ,graph-size))
+                                  (rassq-delete-all nil)))
                  (type . "notebook_cells")))
          (description-cell `((attributes . ((definition . ((type . "markdown") (text . ,description)))))
                              (type . "notebook_cells")))
-         (cells (if description (list description-cell cell) (list cell)))
+         (cells (if description `(,description-cell ,cell) `(,cell)))
          (new-cells (if overwrite cells
                       (let ((old-cells (alist-get 'cells current)))
                         (cl-concatenate 'list cells old-cells))))
          (body `((data . ((attributes . ((cells . ,new-cells)
                                          (name . ,(or (alist-get 'name current) "datadog.el metrics"))
                                          (time . ,(if overwrite time
-                                                    (alist-get 'time current)))))
-                          (type . "notebooks"))))))
+                                                    (or (alist-get 'time current) time)))))
+                          (type . "notebooks")))))
+         (url (format  "https://api.datadoghq.com/api/v1/notebooks/%s" notebook-id)))
     ;; (json-encode body)
-    (plz 'put (format  "https://api.datadoghq.com/api/v1/notebooks/%s" notebook-id)
+    (plz 'put url
       :headers `(("Content-Type" . "application/json")
                  ("DD-API-KEY" . ,datadog-api-key)
                  ("DD-APPLICATION-KEY" . ,datadog-app-key))
@@ -297,13 +311,13 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
       :as #'json-read
       :then (lambda (_)
               (unless skip-browse
-                (browse-url (format "https://app.datadoghq.com/notebook/%s/datadog-el" notebook-id))))
+                (browse-url (format "https://app.datadoghq.com/notebook/%s/" notebook-id))))
       :else (lambda (err)
               (message "Request failed, details in *datadog-errors* buffer")
               (with-output-to-temp-buffer "*datadog-errors*"
+                (princ (format "URL: %s\n" url))
                 (princ (format "Body: %s\n" (json-encode body)))
-                (princ (format "Error: %s" err))) ))))
-
+                (princ (format "Error: %s" err)))))))
 
 (defun datadog-metric (query)
   "Plot metric from QUERY in Datadog temporary notebook."
