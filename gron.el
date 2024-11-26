@@ -1,4 +1,6 @@
 ;;; Code
+(require 'js)
+
 (defcustom gron-default "gron | grep "
   "Arguments to `gron'.")
 
