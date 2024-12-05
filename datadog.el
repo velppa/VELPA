@@ -30,6 +30,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'ts)
 (require 'plz)
 
@@ -77,8 +78,8 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 (defun datadog--browse-url (prefix params)
   (thread-last
     (mapconcat
-     (lambda (x) (pcase-let ((`(,k ,v) x)) (format "%s=%s" k (url-hexify-string (format "%s" v)))))
-     params "&")
+     (lambda (x) (format "%s=%s" (car x) (url-hexify-string (format "%s" (cadr x)))))
+     (cl-remove-if-not #'cadr params) "&")
     (format prefix)
     browse-url))
 
@@ -156,14 +157,13 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                      (agg_m "count"))))
       (datadog--browse-url "https://app.datadoghq.com/logs?%s" params))))
 
-(defun datadog-browse-events (query &rest args)
+(cl-defun datadog-browse-events (query &key from to)
   "Browse events for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
   (cl-destructuring-bind
       (&key from to)
       (datadog--get-time-bounds :from from :to to)
-    (let* ((cols (or (plist-get args :columns) "host,service"))
-           (params
+    (let* ((params
             `((live "false")
               (from_ts ,from)
               (to_ts ,to)
@@ -201,9 +201,10 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
              (query ,query))))
       (datadog--browse-url "https://app.datadoghq.com/apm/traces?%s" params))))
 
-(defun datadog-pods (query &rest args)
+(cl-defun datadog-pods (query &key groups)
   (let* ((params
           `((panel_tab "yaml")
+            (groups ,groups)
             (explorer-na-groups "false")
             (query ,query))))
     (datadog--browse-url

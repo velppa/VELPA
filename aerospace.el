@@ -83,11 +83,6 @@
                   ;;
                   (m . "mode move")
                   ;;
-                  (y . ("focus left" "mode main"))
-                  (u . ("focus down" "mode main"))
-                  (i . ("focus up" "mode main"))
-                  (o . ("focus right" "mode main"))
-                  ;;
                   (h . "focus left")
                   (j . "focus down")
                   (k . "focus up")
@@ -101,10 +96,10 @@
                   (t . "layout floating tiling")
                   (backspace . "close-all-windows-but-current")
                   ;;
-                  (left . "focus left")
-                  (down . "focus down")
-                  (up . "focus up")
-                  (right . "focus right"))
+                  (left . ("join-with left" "mode main"))
+                  (down . ("join-with down" "mode main"))
+                  (up . ("join-with up" "mode main"))
+                  (right . ("join-with right" "mode main")))
                 (mapcar (lambda (x)
                           (cons (make-symbol (format "%s" x))
                                 (format "workspace %s" x)))

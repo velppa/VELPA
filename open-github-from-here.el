@@ -38,15 +38,16 @@
 (defvar open-github-from-here:command
   (expand-file-name "make-github-url-from-file" open-github-from-here:command-dir))
 
-(defun open-github-from-here-github-url ()
+;;;###autoload
+(defun open-github-from-here-get-url ()
   "Return Github URL from current selection, copy Org Mode link to kill-ring and raw URL to system clipboard."
   (interactive)
-  (let ((url (open-github-from-here--github-url)))
+  (let ((url (open-github-from-here--get-url)))
     (kill-new url)
-    (copy-kill-ring-to-clipboard)
+    (simpleclip-copy-kill-ring-to-clipboard)
     (message url)))
 
-(defun open-github-from-here--github-url ()
+(defun open-github-from-here--get-url ()
   (let ((github-url))
     (cond ((and (open-github-from-here:git-project-p) (use-region-p))
            (setq github-url (shell-command-to-string
@@ -62,10 +63,11 @@
                                      (file-name-nondirectory (buffer-file-name)))))))
     github-url))
 
+;;;###autoload
 (defun open-github-from-here ()
   "Open Github URL from current selection."
   (interactive)
-  (browse-url (open-github-from-here--github-url)))
+  (browse-url (open-github-from-here--get-url)))
 
 (defun open-github-from-here:chomp (str)
   (replace-regexp-in-string "[\n\r]+$" "" str))

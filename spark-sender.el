@@ -35,102 +35,99 @@
 
 ;;;;; Manual
 
-;; Install these required packages:
-
-;; + foo
-;; + bar
-
 ;; Then put this file in your load-path, and put this in your init
 ;; file:
 
 ;; (require 'spark-sender)
 
-;;;; Usage
-
-;; Run one of these commands:
-
-;; `spark-sender-command': Frobnicate the flange.
-
-;;;; Tips
-
-;; + You can customize settings in the `spark-sender' group.
-
-;;;; Credits
-
-;; This package would not have been possible without the following
-;; packages: foo[1], which showed me how to bifurcate, and bar[2],
-;; which takes care of flanges.
-;;
-;;  [1] https://example.com/foo.el
-;;  [2] https://example.com/bar.el
-
 ;;; Code:
 
-;;;; Requirements
-
-(require 'foo)
-(require 'bar)
-
-;;;; Customization
-
-(defgroup spark-sender nil
-  "Settings for `spark-sender'."
-  :link '(url-link "https://example.com/spark-sender.el"))
-
-(defcustom spark-sender-something nil
-  "This setting does something."
-  :type 'something)
-
-;;;; Variables
-
-(defvar spark-sender-var nil
-  "A variable.")
+;;;;; Variables
+(defvar spark-sender-target-buffer-name "*spark-shell*"
+  "The name of the target buffer.")
 
 ;;;;; Keymaps
 
 ;; This technique makes it easier and less verbose to define keymaps
 ;; that have many bindings.
 
-(defvar spark-sender-map
-  ;; This makes it easy and much less verbose to define keys
-  (let ((map (make-sparse-keymap "spark-sender map"))
-        (maps (list
-               ;; Mappings go here, e.g.:
-               "RET" #'spark-sender-RET-command
-               [remap search-forward] #'spark-sender-search-forward
-               )))
-    (cl-loop for (key fn) on maps by #'cddr
-             do (progn
-                  (when (stringp key)
-                    (setq key (kbd key)))
-                  (define-key map key fn)))
-    map))
+(defcustom spark-sender-mode-prefix "C-c s"
+  "Prefix for spark-sender-mode keybindings."
+  :type 'key-sequence
+  :group 'spark-sender)
+
+(defun spark-sender-setup-keybindings ()
+  "Set keybindings for `spark-sender-mode'."
+  (let ((prefix spark-sender-mode-prefix))
+    (dolist (binding '(("r" . spark-sender-send-region)
+                       ("w" . spark-sender-send-region-wrapped)
+                       ("v" . spark-sender-send-region-val-wrapped)))
+      (let ((key (concat prefix " " (car binding))))
+        (keymap-local-set key (cdr binding))))))
+
+(define-minor-mode spark-sender-mode
+  "A minor mode to send code using Spark Sender."
+  :lighter " SparkSender"
+  :group 'spark-sender
+  (if spark-sender-mode
+      (spark-sender-setup-keybindings)))
+
+;; (define-globalized-minor-mode spark-sender-global-mode spark-sender-mode
+  ;; (lambda () (spark-sender-mode 1)))
+
+;;;; Functions
+
+;;;;; Private
+
+(defun spark-sender--wrap-val-in-curly-braces (input-str)
+  "Wrap the <code> part in curly braces.
+
+The wrapping happens only if the input string starts with `val
+<name> = <code>'."
+  (if (string-match "val \\([[:alnum:]]+\\) =\\(\\(.\\|\n\\)*\\)" input-str)
+      (let ((name (match-string 1 input-str))
+            (code (match-string 2 input-str)))
+        (format "val %s = { %s }" name code))
+    input-str))
+
+(defun spark-sender--wrap-in-curly-braces (input-str)
+  "Wrap INPUT-STR in curly braces."
+  (format "{ %s }" input-str))
+
+;;;;; Public
 
 ;;;; Commands
 
 ;;;###autoload
-(defun spark-sender-command (args)
-  "Frobnicate the flange."
-  (interactive)
-  (spark-sender-foo
-   (spark-sender--bar args)))
+(defun spark-sender-send-region (beg end)
+  "Send current region to *spark-shell* buffer."
+  (interactive "r")
+  (thread-last
+    (buffer-substring-no-properties beg end)
+    (format "%s\n")
+    (comint-send-string "*spark-shell*")))
 
-;;;; Functions
+;;;###autoload
+(defun spark-sender-send-region-val-wrapped (beg end)
+  "Send current region wrapped into closure to *spark-shell* buffer"
+  (interactive "r")
+  (thread-last
+    (buffer-substring-no-properties beg end)
+    spark-sender--wrap-val-in-curly-braces
+    (format "%s\n")
+    (comint-send-string spark-sender-target-buffer-name)))
 
-;;;;; Public
-
-(defun spark-sender-foo (args)
-  "Return foo for ARGS."
-  (foo args))
-
-;;;;; Private
-
-(defun spark-sender--bar (args)
-  "Return bar for ARGS."
-  (bar args))
+;;;###autoload
+(defun spark-sender-send-region-wrapped (beg end)
+  "Send current region wrapped into closure to *spark-shell* buffer"
+  (interactive "r")
+  (thread-last
+    (buffer-substring-no-properties beg end)
+    spark-sender--wrap-in-curly-braces
+    (format "%s\n")
+    (comint-send-string spark-sender-target-buffer-name)))
 
 ;;;; Footer
-
 (provide 'spark-sender)
 
 ;;; spark-sender.el ends here
