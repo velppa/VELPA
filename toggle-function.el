@@ -1,8 +1,8 @@
-;;; toggle-function.el --- Helper to create a toggle function.    -*- coding: utf-8; lexical-binding: t -*-
+;;; toggle-function.el --- Helper to create a toggle function. -*- coding: utf-8; lexical-binding: t -*-
 ;;
 ;; Filename: toggle-function.el
 ;; Description: Helper to create a toggle function.
-;; Author: Pavel Popov <pavelpopov@outlook.com>
+;; Author: Pavel Popov <hotter-plazas-0x@icloud.com>
 ;; Copyright (C) 2021, Pavel Popov, all rights reserved.
 ;; Created: Fri Feb 27 20:32:14 2009 (-0800)
 ;; Version: 0
@@ -33,7 +33,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;; Code:
-;; (setq lexical-binding t)
 
 (defun toggle-function
   (buffer-name buffer-create-fn &optional switch-cont)
@@ -63,6 +62,17 @@ modify it."
        (message "creating buffer...")
        (funcall buffer-create-fn)
        (when switch-cont (funcall switch-cont))))))
+
+(defun toggle-scratch ()
+  "Toggle *scratch* buffer back and forth."
+  (interactive)
+  (toggle-function "*scratch*" (lambda ())))
+
+(defun toggle-eshell ()
+  "Toggle *eshell* buffer back and forth."
+  (interactive)
+  (toggle-function "*eshell*" 'eshell))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

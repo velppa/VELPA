@@ -65,6 +65,7 @@
                   ;;
                   (f9 . "mode keys")
                   (f13 . "mode keys")
+                  (f14 . "move-workspace-to-monitor --wrap-around next")
                   ;; (tick . "mode keys")
                   )
                 (mapcar (lambda (x)

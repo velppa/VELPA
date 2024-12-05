@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2022 Pavel Popov
 
-;; Author: Pavel Popov <pavelpopov@me.com>
+;; Author: Pavel Popov <hotter-plazas-0x@icloud.com>
 ;; Created: 2022-11-01
 ;; Version: 1.0
 ;; Keywords: multimedia
