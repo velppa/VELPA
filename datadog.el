@@ -80,7 +80,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
     (mapconcat
      (lambda (x) (format "%s=%s" (car x) (url-hexify-string (format "%s" (cadr x)))))
      (cl-remove-if-not #'cadr params) "&")
-    (format prefix)
+    (concat prefix "?")
     browse-url))
 
 (defvar datadog-metrics--time-format "%Y-%m-%dT%H:%M:%S%z")
@@ -132,14 +132,43 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
      ((`(:from ,from :to ,to) (datadog--get-time-bounds :from '(hour -2))))
    (message "from: %s, to: %s" from to))
  ;; "from: 1730722917000, to: 1730730117000"
- )
-;;;###autoload
 
+ (url-hexify-string "service=foobar")
+ ;; "service%3Dfoobar"
+ (url-unhex-string "service%3Acancel-price-watch")
+ ;; "service:cancel-price-watch"
+ (concat  (format "https://app.datadoghq.com/apm/entity/%s" "foo") "?%s")
+ ;;
+ )
+
+(cl-defun datadog-apm (service &key from to (operation "http.request") (env "prod"))
+  "Browse APM page for the SERVICE."
+  (interactive "sService: ")
+  (cl-destructuring-bind
+      (&key from to)
+      (datadog--get-time-bounds :from from :to to)
+    (let* ((params `((paused "false")
+                     (start ,from)
+                     (end ,to)
+                     (env ,env)
+                     (operationName ,operation)
+                     (summary "qson:(data:(visible:!t,changes:(),errors:(selected:count),hits:(selected:count),latency:(selected:latency,slot:(agg:95),distribution:(isLogScale:!f),showTraceOutliers:!t),sublayer:(slot:(layers:service),selected:percentage),lagMetrics:(selectedMetric:!s,selectedGroupBy:!s)),version:!1)")
+                     (panels "qson:(data:(),version:!0)")
+                     (logs "qson:(data:(indexes:[]),version:!0)")
+                     (groupMapByOperation "null")
+                     (fromUser "false")
+                     (dependencyMap "qson:(data:(telemetrySelection:all_sources),version:!0)"))))
+      (datadog--browse-url
+       (concat "https://app.datadoghq.com/apm/entity/"
+               (url-hexify-string (format "service:%s" service)))
+       params))))
+
+;;;###autoload
 (cl-defun datadog-browse-logs (query &key from to (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
   (interactive "sQuery: ")
   (cl-destructuring-bind
-        (&key from to)
+      (&key from to)
       (datadog--get-time-bounds :from from :to to)
     (let* ((params `((live "true")
                      (viz "stream")
@@ -155,7 +184,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                      (agg_t "count")
                      (agg_m_source "base")
                      (agg_m "count"))))
-      (datadog--browse-url "https://app.datadoghq.com/logs?%s" params))))
+      (datadog--browse-url "https://app.datadoghq.com/logs" params))))
 
 (cl-defun datadog-browse-events (query &key from to)
   "Browse events for QUERY.  ARGS is a plist with setting options for the query."
@@ -173,7 +202,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
               (messageDisplay "expanded-lg")
               (cols "")
               (query ,query))))
-      (datadog--browse-url "https://app.datadoghq.com/event/explorer?%s" params))))
+      (datadog--browse-url "https://app.datadoghq.com/event/explorer" params))))
 
 (cl-defun datadog-browse-traces (query &key from to (columns datadog-traces-columns))
   "Browse traces for QUERY.  ARGS is a plist with setting options for the query."
@@ -199,7 +228,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
              (agg_m_source "base")
              (agg_m "count")
              (query ,query))))
-      (datadog--browse-url "https://app.datadoghq.com/apm/traces?%s" params))))
+      (datadog--browse-url "https://app.datadoghq.com/apm/traces" params))))
 
 (cl-defun datadog-pods (query &key groups)
   (let* ((params
@@ -208,7 +237,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
             (explorer-na-groups "false")
             (query ,query))))
     (datadog--browse-url
-     "https://app.datadoghq.com/orchestration/explorer/pod?%s"
+     "https://app.datadoghq.com/orchestration/explorer/pod"
      params)))
 
 (cl-defun datadog-nodes (query &key (groups "label#eks.vio.com/nodegroup"))
@@ -218,7 +247,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
             (explorer-na-groups "false")
             (query ,query))))
     (datadog--browse-url
-     "https://app.datadoghq.com/orchestration/explorer/node?%s"
+     "https://app.datadoghq.com/orchestration/explorer/node"
      params)))
 
 (defun datadog--get-notebook (id)
