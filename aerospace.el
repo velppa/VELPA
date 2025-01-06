@@ -120,17 +120,24 @@
 
 (defun aerospace-gap-block (size)
   "Return uniform gap configuration block of SIZE."
-  `(gaps
-    . ((inner.horizontal . ,size)
-       (inner.vertical . ,size)
-       (outer.left . ,size)
-       (outer.bottom . ,size)
-       (outer.top . ,size)
-       (outer.right . ,size))))
+  (let ((ratio (* 1.5 (/ 16.0 9.0))))
+    `(gaps
+      . ((inner.horizontal . ,size)
+         (inner.vertical . ,size)
+         (outer.left . ,(format "%d" (* ratio size)))
+         (outer.bottom . ,size)
+         (outer.top . ,size)
+         (outer.right . ,(format "%d" (* ratio size)))))))
+
 
 (comment
  (aerospace-gap 10)
  ;; (gaps (inner.horizontal . 10) (inner.vertical . 10) (outer.left . 10) (outer.bottom . 10) (outer.top . 10) (outer.right . 10))
+
+ (aerospace-set-gap 200)
+
+ (aerospace-gap-block 200)
+ ;; (gaps (inner.horizontal . 200) (inner.vertical . 200) (outer.left . "355") (outer.bottom . 200) (outer.top . 200) (outer.right . "355"))
  )
 ;;
 

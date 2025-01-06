@@ -164,7 +164,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
        params))))
 
 ;;;###autoload
-(cl-defun datadog-browse-logs (query &key from to (cols "host,service"))
+(cl-defun datadog-logs (query &key from to (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -186,7 +186,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                      (agg_m "count"))))
       (datadog--browse-url "https://app.datadoghq.com/logs" params))))
 
-(cl-defun datadog-browse-events (query &key from to)
+(cl-defun datadog-events (query &key from to)
   "Browse events for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -204,7 +204,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
               (query ,query))))
       (datadog--browse-url "https://app.datadoghq.com/event/explorer" params))))
 
-(cl-defun datadog-browse-traces (query &key from to (columns datadog-traces-columns))
+(cl-defun datadog-traces (query &key from to (columns datadog-traces-columns))
   "Browse traces for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -257,7 +257,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
               ("DD-APPLICATION-KEY" . ,datadog-app-key))
     :as #'json-read))
 
-(cl-defun datadog-browse-notebook (key)
+(cl-defun datadog-notebook (key)
   "Browse Datadog notebook with the specified key"
   (interactive (list (completing-read "Choose notebook: "
                                       datadog-notebooks)))
