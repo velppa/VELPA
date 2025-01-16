@@ -65,6 +65,8 @@ Supported resources:
 - pcx-XXX - Peering connection
 - i-XXX - EC2 Instance
 - subnet-XXX - Subnet
+- arn:aws:iam::123456789012:role/role-name - IAM role
+- arn:aws:iam::123456789012:policy/policy-name - IAM policy
 "
   (interactive)
   (let* ((security-group-rx (rx (group bol "sg-" (one-or-more (not whitespace)))))
@@ -72,12 +74,20 @@ Supported resources:
          (instance-rx (rx (group bol "i-" (one-or-more (not whitespace)))))
          (peering-connection-rx (rx (group bol "pcx-" (one-or-more (not whitespace)))))
          (subnet-rx (rx (group bol "subnet-" (one-or-more (not whitespace)))))
+         (iam-role-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":role/" (group (one-or-more (not whitespace)))))
+         (iam-policy-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":policy/" (one-or-more (not whitespace))))
          (url (or (when (string-match security-group-rx arn)
                     (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SecurityGroup:groupId=%s"
                             region region (match-string 1 arn)))
                   (when (string-match vpc-rx arn)
                     (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#VpcDetails:VpcId=%s"
                             region region (match-string 1 arn)))
+                  (when (string-match iam-role-arn-rx arn)
+                    (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/roles/details/%s?section=permissions"
+                            region region (match-string 1 arn)))
+                  (when (string-match iam-policy-arn-rx arn)
+                    (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/policies/details/%s?section=permissions"
+                            region region (url-hexify-string arn)))
                   (when (string-match peering-connection-rx arn)
                     (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#PeeringConnectionDetails:VpcPeeringConnectionId=%s"
                             region region (match-string 1 arn)))

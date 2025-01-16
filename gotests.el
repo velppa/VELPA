@@ -32,11 +32,18 @@
   (let* ((node (treesit-node-at (point)))
          (func-node (treesit-parent-until
                      node
-                     (lambda (x) (equal (treesit-node-type x) "function_declaration"))))
-         (func-name (treesit-node-text (car (treesit-node-children func-node t)))))
-    (call-process
-     "gotests" nil nil nil "-w" "-only" func-name buffer-file-name)
-    (message "Generated test code for func %s. See *_test.go file." func-name)))
+                     (lambda (x) (or (equal (treesit-node-type x) "function_declaration")
+                                     (equal (treesit-node-type x) "method_declaration")))))
+         (selector (lambda (node)
+                     (if (equal (treesit-node-type node) "function_declaration")
+                         #'car #'cadr))))
+    (if func-node
+        (let ((func-name (treesit-node-text (funcall (funcall selector func-node)
+                                                     (treesit-node-children func-node t)))))
+          (call-process
+           "gotests" nil nil nil "-w" "-only" func-name buffer-file-name)
+          (message "Generated test code for func %s. See *_test.go file." func-name))
+      (user-error "func-node is nil"))))
 
 (provide 'gotests)
 ;;; gotests.el ends here

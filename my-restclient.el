@@ -1,4 +1,4 @@
-;;; my-restclient.el --- My extensions of restclient.el
+;;; my-restclient.el --- My extensions of restclient.el -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023 Pavel Popov
 
