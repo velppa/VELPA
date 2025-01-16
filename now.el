@@ -32,22 +32,29 @@
     (ebut:create 'btn)
     ))
 
-(defun now--shortcut-story-short-format (org-link)
-  "Format Org Link for Shortcut Story"
-  (let ((expr (rx "[[" (group (one-or-more anything) "/story/"
-                              (group (one-or-more digit)) "/"
-                              (one-or-more anything))
-                  "]" (one-or-more anything) "]")))
-    (when (string-match expr org-link)
-      (let* ((url (match-string 1 org-link))
-             (id (match-string 2 org-link))
-             (title (format "sc-%s" id)))
-        (format "[[%s][%s]]" url title)))))
+(defun now--format-url (url)
+  "Format URL as org-mode link."
+  (let ((shortcut-story-rx (rx "[[" (group "https://app.shortcut.com/"
+                                           (one-or-more anything)
+                                           (or "/story/" "/epic/")
+                                           (group (one-or-more digit))
+                                           (optional "/" (one-or-more (not "]"))))
+                               "]" (optional (one-or-more anything)) "]"))
+        (org-link-rx (rx "[[" (group (one-or-more (not "]"))) "]"
+                         (optional "[" (group (one-or-more anything)) "]") "]")))
+    (when url
+      (or (when (string-match shortcut-story-rx url)
+            (let* ((raw-url (match-string 1 url))
+                   (id (match-string 2 url))
+                   (title (format "sc-%s" id)))
+              (format "[[%s][%s]]" raw-url title)))
+          (when (string-match org-link-rx url)
+            (let ((raw-url (match-string 1 url))
+                  (title (match-string 2 url)))
+              (format "[[%s][%s]]" raw-url (or title "link"))))
+          (format "[[%s][link]]" url)))))
 
-(defun now-format-url (url)
-  "Format url as org-mode link."
-  (when url
-    ))
+
 
 (defun now--shortcut-story-ebut (org-link org-id)
   "Returns hyperbole explicit button + Org Mode link"
@@ -63,12 +70,14 @@
           (format "<(%s)> [[%s][link]]" label url))))))
 
 (comment
- (now--shortcut-story-short-format "[[https://app.shortcut.com/findhotel/story/133422/consume-raw-clicks-in-price-accuracy-heater][Consume raw clicks in Price Accuracy Heater | Shortcut]]")
+ (now--format-url "[[https://app.shortcut.com/findhotel/story/133422/consume-raw-clicks-in-price-accuracy-heater][Consume raw clicks in Price Accuracy Heater | Shortcut]]")
+ (now--format-url "[[https://app.shortcut.com/findhotel/epic/100758][Price Graph | Epics | Shortcut]]")
+
  ;; "[[https://app.shortcut.com/findhotel/story/133422/consume-raw-clicks-in-price-accuracy-heater][sc-133422]]"
  ;; "133422"
 
  (when (and tags (string-match-p (regexp-quote ":Story:") tags) url)
-          (now--shortcut-story-short-format url))
+   (now--shortcut-story-short-format url))
  )
 
 (cl-defun now-roadmap-item (&key (todo t) (priority t) (closed t))
@@ -81,7 +90,7 @@
                                        (org-entry-get nil "CLOSED")
                                      (substring it 1 15)
                                      (format "[%s]" it)))))
-    (string-join `(,title ,url ,closed-date) " ")))
+    (string-clean-whitespace (string-join `(,title ,url ,closed-date) " "))))
 
 (cl-defun now-hyperbolized-item (&key (todo t))
   "Formats heading with Explicit Hyperbole button."
