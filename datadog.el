@@ -33,6 +33,7 @@
 (require 'cl-lib)
 (require 'ts)
 (require 'plz)
+(require 'plz-see)
 
 ;;;; Variables
 
@@ -55,7 +56,7 @@
 Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 3mo, 6mo, week_to_date, month_to_date, 1y, alert")
 
-(defvar datadog-traces-columns
+(defvar datadog-spans-columns
   (string-join '("service"
                  "resource_name"
                  "@duration"
@@ -67,7 +68,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                  "operation_name"
                  "@http.url")
                ",")
-  "Traces columns.")
+  "Spans columns.")
 
 (defvar datadog-default-from
   '(day -14)
@@ -85,21 +86,17 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 
 (defvar datadog-metrics--time-format "%Y-%m-%dT%H:%M:%S%z")
 
-(cl-defun datadog--get-time-bounds (&key from to)
+(cl-defun datadog--get-time-bounds (&key (from datadog-default-from) (to (ts-now)))
   "Return PLIST with keys :from and :to for time bounds."
-  (let* ((milliseconds (lambda (x) (thread-last x ts-unix truncate (* 1000))))
-         (to (or to (ts-now)))
-         (from (or from datadog-default-from)))
+  (let* ((milliseconds (lambda (x) (thread-last x ts-unix truncate (* 1000)))))
     (list
      :from (funcall milliseconds (apply #'ts-adjust (seq-concatenate 'list from `(,to))))
      :to (funcall milliseconds to))))
 
-(cl-defun datadog--get-time-bounds-datetime (&key from to)
+(cl-defun datadog--get-time-bounds-datetime (&key (from datadog-default-from) (to (ts-now)))
   "Return PLIST with keys :from and :to for time bounds as datetime string."
   (let* ((fmt (lambda (x) (if (stringp x) x
-                            (ts-format datadog-metrics--time-format x))))
-         (to (or to (ts-now)))
-         (from (or from datadog-default-from)))
+                            (ts-format datadog-metrics--time-format x)))))
     (list
      :from (funcall fmt (if (stringp from) from
                           (apply #'ts-adjust (seq-concatenate 'list from `(,to)))))
@@ -114,8 +111,8 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
  (datadog--get-time-bounds-datetime)
  ;; (:from "2024-10-21T15:36:05+0200" :to "2024-11-04T15:36:05+0100")
 
- (datadog--get-time-bounds)
- ;; (:from 1729516862000 :to 1730730062000)
+ (datadog--get-time-bounds :from '(day -2))
+ ;; (:from 1739177241000 :to 1739350041000)
 
  (datadog--get-time-bounds :from '(day -2) :to (ts-adjust 'day -1 (ts-now)))
  ;; (:from 1730470866000 :to 1730643666000)
@@ -141,7 +138,11 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
  ;;
  )
 
-(cl-defun datadog-apm (service &key from to (operation "http.request") (env "prod"))
+(cl-defun datadog-apm (service &key
+                               (from datadog-default-from)
+                               (to (ts-now))
+                               (operation "http.request")
+                               (env "prod"))
   "Browse APM page for the SERVICE."
   (interactive "sService: ")
   (cl-destructuring-bind
@@ -164,7 +165,10 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
        params))))
 
 ;;;###autoload
-(cl-defun datadog-logs (query &key from to (cols "host,service"))
+(cl-defun datadog-logs (query &key
+                              (from datadog-default-from)
+                              (to (ts-now))
+                              (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -186,7 +190,10 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                      (agg_m "count"))))
       (datadog--browse-url "https://app.datadoghq.com/logs" params))))
 
-(cl-defun datadog-events (query &key from to)
+(cl-defun datadog-events (query &key
+                                (from datadog-default-from)
+                                (to (ts-now))
+                                )
   "Browse events for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -204,7 +211,11 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
               (query ,query))))
       (datadog--browse-url "https://app.datadoghq.com/event/explorer" params))))
 
-(cl-defun datadog-traces (query &key from to (columns datadog-traces-columns))
+(cl-defun datadog-traces (query &key
+                                (from datadog-default-from)
+                                (to (ts-now))
+                                (view "spans") ;; or "traces"
+                                (columns datadog-spans-columns))
   "Browse traces for QUERY.  ARGS is a plist with setting options for the query."
   (interactive "sQuery: ")
   (cl-destructuring-bind
@@ -214,7 +225,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
            `((paused "false")
              (start ,from)
              (end ,to)
-             (view "spans")
+             (view ,view)
              (spanType "all")
              (sort "time")
              (shouldShowLegend "true")
@@ -239,6 +250,17 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
     (datadog--browse-url
      "https://app.datadoghq.com/orchestration/explorer/pod"
      params)))
+
+(cl-defun datadog-deployment (query)
+  (let* ((params
+          `((panel_tab "yaml")
+            (panel_view "pod")
+            (query ,query))))
+    (datadog--browse-url
+     "https://app.datadoghq.com/orchestration/explorer/deployment"
+     params)))
+
+;;; https://app.datadoghq.com/orchestration/explorer/deployment?query=kube_deployment%3Araa-search-completed-paheater%20kube_namespace%3Ameta-redpanda-clients%20kube_cluster_name%3Ansz-k8s-main-prd&explorer-na-groups=false&inspect=~kube_deployment%3Araa-search-completed-paheater%2Ckube_namespace%3Ameta-redpanda-clients%2Ckube_cluster_name%3Ansz-k8s-main-prd&panel_tab=logs&panel_view=pod&pte=1737467175962&ptfu=false&ptm=sliding&pts=1737465375962
 
 (cl-defun datadog-nodes (query &key (groups "label#eks.vio.com/nodegroup"))
   (let* ((params
@@ -353,6 +375,22 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
   "Plot metric from QUERY in Datadog temporary notebook."
   (interactive "sQuery: ")
   (datadog-metrics :queries `(,query) :notebook :temporary :overwrite t))
+
+
+(cl-defun datadog-list-active-metrics (&key from tag-filter)
+  "List active metrics starting FROM timestamp."
+  (cl-destructuring-bind
+      (&key from to)
+      (datadog--get-time-bounds :from from)
+    (let* ((params `((from ,(/ from 1000))
+                     (tag_filter ,tag-filter)))
+           (url (format "https://api.datadoghq.com/api/v1/metrics?%s"
+                        (url-build-query-string params))))
+      (plz-see 'get url
+               :headers `(("Content-Type" . "application/json")
+                          ("DD-API-KEY" . ,datadog-api-key)
+                          ("DD-APPLICATION-KEY" . ,datadog-app-key))
+               :as #'json-read))))
 
 ;;;; Footer
 

@@ -10,8 +10,15 @@
 (require 'org-ql)
 (require 'org-roam)
 (require 'org)
-(require 'hyperbole)
+;; (require 'hyperbole)
 (require 'dash)
+
+
+(defvar now-priority-category-alist
+  '(("Price Tracker" . "https://www.notion.so/viocom/Price-Tracker-Roadmap-120f584cf1ae48ae8cdacc73fe1b4928")
+    ("Price History" . "https://www.notion.so/viocom/Price-Tracker-Roadmap-120f584cf1ae48ae8cdacc73fe1b4928")
+    ("Redpanda" . "https://www.notion.so/viocom/Redpanda-Roadmap-8d82434b5ffa4af2b27273ea23bc711d"))
+  "Mapping from PRIORITY_CATEGORY property to URL linked to it.")
 
 (defun now--goto-node-by-id (id)
   "Go to the Org-roam node with the specified ID."
@@ -50,11 +57,11 @@
               (format "[[%s][%s]]" raw-url title)))
           (when (string-match org-link-rx url)
             (let ((raw-url (match-string 1 url))
-                  (title (match-string 2 url)))
-              (format "[[%s][%s]]" raw-url (or title "link"))))
+                  ;; (title (match-string 2 url))
+                  )
+              (format "[[%s][link]]" raw-url ;; (or title "link")
+                      )))
           (format "[[%s][link]]" url)))))
-
-
 
 (defun now--shortcut-story-ebut (org-link org-id)
   "Returns hyperbole explicit button + Org Mode link"
@@ -80,37 +87,49 @@
    (now--shortcut-story-short-format url))
  )
 
-(cl-defun now-roadmap-item (&key (todo t) (priority t) (closed t))
-  "Formats heading as a Roadmap item."
+(cl-defun now-roadmap-item (&key (todo t) (priority t) (closed t) (category t))
+  "Formats heading as a Roadmap item.
+
+When CATEGORY is t, add PRIORITY_CATEGORY property to the title,
+when link, make it a link by looking up in `now-priority-category-alist'."
   (let* ((props (org-entry-properties))
          (title (org-get-heading t (not todo) (not priority) t))
          (url (now--format-url (cdr (assoc-string "URL" props))))
+         (category (when category
+                     (-some--> (assoc-string "PRIORITY_CATEGORY" props)
+                       cdr
+                       (if-let ((priority-url
+                                 (and (equal category 'link)
+                                      (assoc it now-priority-category-alist))))
+                           (format "[[[%s][%s]]]" (cdr priority-url) it)
+                         (format "[%s]" it)))))
          (tags (cdr (assoc-string "TAGS" props)))
-         (closed-date (when closed (-some-->
-                                       (org-entry-get nil "CLOSED")
-                                     (substring it 1 15)
-                                     (format "[%s]" it)))))
-    (string-clean-whitespace (string-join `(,title ,url ,closed-date) " "))))
+         (closed-date (-some--> closed
+                        identity
+                        (org-entry-get nil "CLOSED")
+                        (substring it 1 15)
+                        (format "[%s]" it))))
+    (string-clean-whitespace (string-join (remove nil `(,title ,category ,url ,closed-date)) " "))))
 
-(cl-defun now-hyperbolized-item (&key (todo t))
-  "Formats heading with Explicit Hyperbole button."
-  ;; (org-get-heading t t t t)
-  ;; (org-heading-components)
-  ;; (message (file-name-nondirectory (buffer-file-name)))
-  (let* ((props (org-entry-properties))
-         (title (org-get-heading t (not todo) nil t))
-         (url (cdr (assoc-string "URL" props)))
-         (id (cdr (assoc-string "ID" props)))
-         (tags (cdr (assoc-string "TAGS" props))))
-    (string-join
-     (list
-      title
-      (when (and tags (string-match-p (regexp-quote ":Story:") tags) url)
-        ;; (now--shortcut-story-short-format url)
-        (if id
-            (now--shortcut-story-ebut url id)
-          title)))
-     " ")))
+;; (cl-defun now-hyperbolized-item (&key (todo t))
+;;   "Formats heading with Explicit Hyperbole button."
+;;   ;; (org-get-heading t t t t)
+;;   ;; (org-heading-components)
+;;   ;; (message (file-name-nondirectory (buffer-file-name)))
+;;   (let* ((props (org-entry-properties))
+;;          (title (org-get-heading t (not todo) nil t))
+;;          (url (cdr (assoc-string "URL" props)))
+;;          (id (cdr (assoc-string "ID" props)))
+;;          (tags (cdr (assoc-string "TAGS" props))))
+;;     (string-join
+;;      (list
+;;       title
+;;       (when (and tags (string-match-p (regexp-quote ":Story:") tags) url)
+;;         ;; (now--shortcut-story-short-format url)
+;;         (if id
+;;             (now--shortcut-story-ebut url id)
+;;           title)))
+;;      " ")))
 
 (cl-defun now-sort-by (&key (by 'closed))
   "Return a function to sort strings by BY criteria."
@@ -129,6 +148,5 @@
         (progn
           (message "not matched")
           (string-lessp s1 s2))))))
-
 
 (provide 'now)

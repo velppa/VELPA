@@ -8,9 +8,10 @@
 
 (require 'restclient)
 
+
 (defun my-restclient-url-to-buffer (url)
   "Opens a buffer with URL represented as restclient.el GET block."
-  (let* ((parsed (url-generic-parse-url url))
+  (let* ((parsed (url-generic-parse-url (string-trim url)))
          (scheme (url-type parsed))
          (host (url-host parsed))
          (query (url-parse-query-string (cadr (split-string (url-filename parsed) "?"))))
@@ -23,9 +24,7 @@
           (temp-buffer (switch-to-buffer (format "*restclient-%s*" (make-temp-name "")))))
       (end-of-line)
       (insert (prin1-to-string `(let ((params ',symbol-query))
-                                  (mapconcat (lambda (x)
-                                               (format "%s=%s" (car x)
-                                                       (cadr x))) params "&"))))
+                                  (url-build-query-string params))))
       (push-mark)
       (backward-list)
       (lispy-multiline)

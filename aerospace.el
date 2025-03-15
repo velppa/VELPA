@@ -48,6 +48,7 @@
     (on-focused-monitor-changed . ("move-mouse monitor-lazy-center")))
   "Root AeroSpace configuration")
 
+
 (defvar aerospace-modes-config
   `((mode.main.binding
      . ,(append '((cmd-shift-7 . "layout h_tiles")
@@ -65,8 +66,7 @@
                   ;;
                   (f9 . "mode keys")
                   (f13 . "mode keys")
-                  (f14 . "move-workspace-to-monitor --wrap-around next")
-                  ;; (tick . "mode keys")
+                  ;; (f14 . "move-workspace-to-monitor --wrap-around next")
                   )
                 (mapcar (lambda (x)
                           (cons (make-symbol (format "alt-%s" x))
@@ -76,26 +76,37 @@
      . ,(append '((esc . "mode main")
                   (f9 . "mode main")
                   (f13 . "mode main")
-                  (g . "mode main")
-                  (tab . "mode main")
+                  ;; (g . "mode main")
+                  ;; (tab . "mode main")
                   ;;
                   (period . "layout tiles horizontal vertical")
                   (comma . "layout accordion horizontal vertical")
                   ;;
                   (m . "mode move")
                   ;;
-                  (h . "focus left")
-                  (j . "focus down")
-                  (k . "focus up")
-                  (l . "focus right")
+                  ;; (h . "focus left")
+                  ;; (j . "focus down")
+                  ;; (k . "focus up")
+                  ;; (l . "focus right")
                   ;;
                   (minus . "resize smart -50")
                   (equal . "resize smart +50")
                   ;;
-                  (f . "flatten-workspace-tree")
-                  (r . "reload-config")
-                  (t . "layout floating tiling")
+                  (g . "flatten-workspace-tree") ;; mnemonics - C-g => escape
+                  ;; (r . "reload-config")
+                  (f . "layout floating tiling")
                   (backspace . "close-all-windows-but-current")
+                  ;; workspaces on Planck
+                  (q . ("workspace 1" "mode main"))
+                  (w . ("workspace 2" "mode main"))
+                  (e . ("workspace 3" "mode main"))
+                  (r . ("workspace 4" "mode main"))
+                  (t . ("workspace 5" "mode main"))
+                  (y . ("workspace 6" "mode main"))
+                  (u . ("workspace 7" "mode main"))
+                  (i . ("workspace 8" "mode main"))
+                  (o . ("workspace 9" "mode main"))
+                  (p . ("workspace 0" "mode main"))
                   ;;
                   (left . ("join-with left" "mode main"))
                   (down . ("join-with down" "mode main"))

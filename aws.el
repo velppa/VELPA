@@ -74,32 +74,55 @@ Supported resources:
          (instance-rx (rx (group bol "i-" (one-or-more (not whitespace)))))
          (peering-connection-rx (rx (group bol "pcx-" (one-or-more (not whitespace)))))
          (subnet-rx (rx (group bol "subnet-" (one-or-more (not whitespace)))))
+         (appconfig-profile-arn-rx (rx "arn:aws:appconfig:"
+                                       (one-or-more (not whitespace)) ":"
+                                       (one-or-more digit)
+                                       ":application/" (group (one-or-more (not whitespace)))
+                                       "/configurationprofile/" (group (one-or-more (not whitespace)))))
+         (sfn-execution-arn-rx (rx "arn:aws:states:"
+                                       (one-or-more (not whitespace)) ":"
+                                       (one-or-more digit)
+                                       ":execution:" (one-or-more (not whitespace))))
          (iam-role-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":role/" (group (one-or-more (not whitespace)))))
          (iam-policy-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":policy/" (one-or-more (not whitespace))))
-         (url (or (when (string-match security-group-rx arn)
-                    (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SecurityGroup:groupId=%s"
-                            region region (match-string 1 arn)))
-                  (when (string-match vpc-rx arn)
-                    (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#VpcDetails:VpcId=%s"
-                            region region (match-string 1 arn)))
-                  (when (string-match iam-role-arn-rx arn)
-                    (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/roles/details/%s?section=permissions"
-                            region region (match-string 1 arn)))
-                  (when (string-match iam-policy-arn-rx arn)
-                    (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/policies/details/%s?section=permissions"
-                            region region (url-hexify-string arn)))
-                  (when (string-match peering-connection-rx arn)
-                    (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#PeeringConnectionDetails:VpcPeeringConnectionId=%s"
-                            region region (match-string 1 arn)))
-                  (when (string-match instance-rx arn)
-                    (format "https://%s.console.aws.amazon.com/ec2/home?region=%s#%s:instanceId=%s"
-                            region region
-                            (if (equal page :list) "Instances" "InstanceDetails")
-                            (match-string 1 arn)))
-                  (when (string-match subnet-rx arn)
-                    (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SubnetDetails:subnetId=%s"
-                            region region (match-string 1 arn))))))
-    (browse-url url)))
+         (s3-url-rx (rx "s3://" (group (one-or-more (not "/"))) "/" (group (one-or-more any))))
+         (url
+          (or
+           (when (string-match s3-url-rx arn)
+             (format "https://%s.s3.amazonaws.com/%s"
+                     (match-string 1 arn)
+                     (match-string 2 arn)))
+           (when (string-match security-group-rx arn)
+             (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SecurityGroup:groupId=%s"
+                     region region (match-string 1 arn)))
+           (when (string-match vpc-rx arn)
+             (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#VpcDetails:VpcId=%s"
+                     region region (match-string 1 arn)))
+           (when (string-match iam-role-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/roles/details/%s?section=permissions"
+                     region region (match-string 1 arn)))
+           (when (string-match appconfig-profile-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/systems-manager/appconfig/applications/%s/featureflags/%s/versions?region=%s"
+                     region (match-string 1 arn) (match-string 2 arn) region))
+           (when (string-match sfn-execution-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/states/home?region=%s#/v2/executions/details/%s"
+                     region region arn))
+           (when (string-match iam-policy-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/iam/home?region=%s#/policies/details/%s?section=permissions"
+                     region region (url-hexify-string arn)))
+           (when (string-match peering-connection-rx arn)
+             (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#PeeringConnectionDetails:VpcPeeringConnectionId=%s"
+                     region region (match-string 1 arn)))
+           (when (string-match instance-rx arn)
+             (format "https://%s.console.aws.amazon.com/ec2/home?region=%s#%s:instanceId=%s"
+                     region region
+                     (if (equal page :list) "Instances" "InstanceDetails")
+                     (match-string 1 arn)))
+           (when (string-match subnet-rx arn)
+             (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SubnetDetails:subnetId=%s"
+                     region region (match-string 1 arn))))))
+    (if url (browse-url url)
+      (user-error "url is nil"))))
 
 ;;;; Functions
 

@@ -1,4 +1,4 @@
-;;; spark-sender.el --- Send region to spark-shell buffer  -*- lexical-binding: t; -*-
+G;;; spark-sender.el --- Send region to spark-shell buffer  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024 Pavel Popov
 
@@ -51,26 +51,26 @@
 ;; This technique makes it easier and less verbose to define keymaps
 ;; that have many bindings.
 
-(defcustom spark-sender-mode-prefix "C-c s"
-  "Prefix for spark-sender-mode keybindings."
-  :type 'key-sequence
-  :group 'spark-sender)
+;; (defcustom spark-sender-mode-prefix "C-c s"
+;;   "Prefix for spark-sender-mode keybindings."
+;;   :type 'key-sequence
+;;   :group 'spark-sender)
 
-(defun spark-sender-setup-keybindings ()
-  "Set keybindings for `spark-sender-mode'."
-  (let ((prefix spark-sender-mode-prefix))
-    (dolist (binding '(("r" . spark-sender-send-region)
-                       ("w" . spark-sender-send-region-wrapped)
-                       ("v" . spark-sender-send-region-val-wrapped)))
-      (let ((key (concat prefix " " (car binding))))
-        (keymap-local-set key (cdr binding))))))
+;; (defun spark-sender-setup-keybindings ()
+;;   "Set keybindings for `spark-sender-mode'."
+;;   (let ((prefix spark-sender-mode-prefix))
+;;     (dolist (binding '(("r" . spark-sender-send-region)
+;;                        ("w" . spark-sender-send-region-wrapped)
+;;                        ("v" . spark-sender-send-region-val-wrapped)))
+;;       (let ((key (concat prefix " " (car binding))))
+;;         (keymap-local-set key (cdr binding))))))
 
-(define-minor-mode spark-sender-mode
-  "A minor mode to send code using Spark Sender."
-  :lighter " SparkSender"
-  :group 'spark-sender
-  (if spark-sender-mode
-      (spark-sender-setup-keybindings)))
+;; (define-minor-mode spark-sender-mode
+;;   "A minor mode to send code using Spark Sender."
+;;   :lighter " SparkSender"
+;;   :group 'spark-sender
+;;   (if spark-sender-mode
+;;       (spark-sender-setup-keybindings)))
 
 ;; (define-globalized-minor-mode spark-sender-global-mode spark-sender-mode
   ;; (lambda () (spark-sender-mode 1)))
@@ -97,35 +97,50 @@ The wrapping happens only if the input string starts with `val
 ;;;;; Public
 
 ;;;; Commands
+;;;###autoload
+(defun spark-sender-send (beg end arg)
+  "Send current region to *spark-shell* buffer.
+
+With one universal argument (C-u), wrap val in curly braces.
+With two universal arguments (C-u C-u), wrap region in curly braces."
+  (interactive "r\nP")
+  (let ((wrapper (cond ((null arg) #'identity)
+                       ((equal arg '(4)) #'spark-sender--wrap-val-in-curly-braces)
+                       ((equal arg '(16)) #'spark-sender--wrap-in-curly-braces))))
+    (thread-last
+      (buffer-substring-no-properties beg end)
+      wrapper
+      (format "%s\n")
+      (comint-send-string spark-sender-target-buffer-name))))
 
 ;;;###autoload
-(defun spark-sender-send-region (beg end)
-  "Send current region to *spark-shell* buffer."
-  (interactive "r")
-  (thread-last
-    (buffer-substring-no-properties beg end)
-    (format "%s\n")
-    (comint-send-string "*spark-shell*")))
+;; (defun spark-sender-send-region (beg end)
+;;   "Send current region to *spark-shell* buffer."
+;;   (interactive "r")
+;;   (thread-last
+;;     (buffer-substring-no-properties beg end)
+;;     (format "%s\n")
+;;     (comint-send-string spark-sender-target-buffer-name)))
 
 ;;;###autoload
-(defun spark-sender-send-region-val-wrapped (beg end)
-  "Send current region wrapped into closure to *spark-shell* buffer"
-  (interactive "r")
-  (thread-last
-    (buffer-substring-no-properties beg end)
-    spark-sender--wrap-val-in-curly-braces
-    (format "%s\n")
-    (comint-send-string spark-sender-target-buffer-name)))
+;; (defun spark-sender-send-region-val-wrapped (beg end)
+;;   "Send current region wrapped into closure to *spark-shell* buffer"
+;;   (interactive "r")
+;;   (thread-last
+;;     (buffer-substring-no-properties beg end)
+;;     spark-sender--wrap-val-in-curly-braces
+;;     (format "%s\n")
+;;     (comint-send-string spark-sender-target-buffer-name)))
 
 ;;;###autoload
-(defun spark-sender-send-region-wrapped (beg end)
-  "Send current region wrapped into closure to *spark-shell* buffer"
-  (interactive "r")
-  (thread-last
-    (buffer-substring-no-properties beg end)
-    spark-sender--wrap-in-curly-braces
-    (format "%s\n")
-    (comint-send-string spark-sender-target-buffer-name)))
+;; (defun spark-sender-send-region-wrapped (beg end)
+;;   "Send current region wrapped into closure to *spark-shell* buffer"
+;;   (interactive "r")
+;;   (thread-last
+;;     (buffer-substring-no-properties beg end)
+;;     spark-sender--wrap-in-curly-braces
+;;     (format "%s\n")
+;;     (comint-send-string spark-sender-target-buffer-name)))
 
 ;;;; Footer
 (provide 'spark-sender)

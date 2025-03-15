@@ -47,6 +47,7 @@
 ;;; Code:
 (require 'cider)
 (require 'tempo)
+(require 'ob-clojure)
 
 (comment (setq params '()))
 
@@ -76,17 +77,6 @@
        (reverse (delete "" (mapcar (lambda (r)
 				     (replace-regexp-in-string "nil" "" r))
 				   result0)))))))
-
-(comment
- (let ((body "select 1"))
-   (thread-last
-     `((require '[velppa.snowflake :as sf])
-       (sf/execute-print! [,body]))
-     prin1-to-string
-     (string-remove-suffix ")")
-     (string-remove-prefix "(")))
- ;; "(require '[velppa.snowflake :as sf]) (sf/execute-print! [\"select 1\"])"
- )
 
 
 (defun org-babel-execute:snowflake-sql (body params)
