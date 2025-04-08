@@ -67,6 +67,7 @@ Supported resources:
 - subnet-XXX - Subnet
 - arn:aws:iam::123456789012:role/role-name - IAM role
 - arn:aws:iam::123456789012:policy/policy-name - IAM policy
+- ip-172-50-18-214.eu-west-1.compute.internal - private EC2 instance DNS name
 "
   (interactive)
   (let* ((security-group-rx (rx (group bol "sg-" (one-or-more (not whitespace)))))
@@ -74,20 +75,25 @@ Supported resources:
          (instance-rx (rx (group bol "i-" (one-or-more (not whitespace)))))
          (peering-connection-rx (rx (group bol "pcx-" (one-or-more (not whitespace)))))
          (subnet-rx (rx (group bol "subnet-" (one-or-more (not whitespace)))))
+         (ec2-private-dns-rx (rx (group bol "ip-" (one-or-more (not whitespace)) ".compute.internal")))
          (appconfig-profile-arn-rx (rx "arn:aws:appconfig:"
                                        (one-or-more (not whitespace)) ":"
                                        (one-or-more digit)
                                        ":application/" (group (one-or-more (not whitespace)))
                                        "/configurationprofile/" (group (one-or-more (not whitespace)))))
          (sfn-execution-arn-rx (rx "arn:aws:states:"
-                                       (one-or-more (not whitespace)) ":"
-                                       (one-or-more digit)
-                                       ":execution:" (one-or-more (not whitespace))))
+                                   (one-or-more (not whitespace)) ":"
+                                   (one-or-more digit)
+                                   ":execution:" (one-or-more (not whitespace))))
          (iam-role-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":role/" (group (one-or-more (not whitespace)))))
          (iam-policy-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":policy/" (one-or-more (not whitespace))))
          (s3-url-rx (rx "s3://" (group (one-or-more (not "/"))) "/" (group (one-or-more any))))
          (url
           (or
+           (when (string-match ec2-private-dns-rx arn)
+             (format "https://%s.console.aws.amazon.com/ec2/home?region=%s#Instances:privateDnsName=%s"
+                     region region
+                     (match-string 1 arn)))
            (when (string-match s3-url-rx arn)
              (format "https://%s.s3.amazonaws.com/%s"
                      (match-string 1 arn)
@@ -124,7 +130,43 @@ Supported resources:
     (if url (browse-url url)
       (user-error "url is nil"))))
 
+
+(defun aws-browse-kubernetes-node (beg end)
+  "Browse EC2 instance of kubernetes node an the region BEG to END."
+  (interactive "r")
+  (kubernetes-kubectl-get
+   (format "node/%s" (buffer-substring-no-properties beg end))
+   nil
+   (lambda (resp)
+     (--> resp
+          (alist-get 'spec it)
+          (alist-get 'providerID it)
+          (split-string it (rx "/"))
+          last car
+          aws-browse))))
+
 ;;;; Functions
+
+(defun aws-s3-list-objects (bucket prefix)
+  "Lists s3 objects in prefix, returning parsed json."
+  (thread-first
+    "aws s3api list-objects --bucket %s --prefix %s --output json --no-paginate"
+    (format bucket prefix)
+    shell-command-to-string
+    json-read-from-string
+    ))
+
+
+(defun aws-s3-calculate-total-size (response)
+  "Calculate the total size (GiB) of all objects in an aws-s3-list-objects response."
+  (let ((total-size 0)
+        (contents (cdr (assoc 'Contents response))))
+    (when contents
+      (cl-loop for object across contents
+               for size = (cdr (assoc 'Size object))
+               when size
+               do (setq total-size (+ total-size size))))
+    (/ total-size 1024.0 1024.0 1024.0)))
 
 ;;;;; Public
 

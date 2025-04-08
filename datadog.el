@@ -77,12 +77,18 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 ;;;; Commands
 
 (defun datadog--browse-url (prefix params)
-  (thread-last
-    (mapconcat
-     (lambda (x) (format "%s=%s" (car x) (url-hexify-string (format "%s" (cadr x)))))
-     (cl-remove-if-not #'cadr params) "&")
-    (concat prefix "?")
-    browse-url))
+  (message "params: %s"                (cl-remove-if-not #'cadr params))
+  (let ((url (thread-last
+               ;; (mapconcat
+               ;;  (lambda (x) (format "%s=%s" (car x) (url-hexify-string (format "%s" (cadr x)))))
+               ;;   (cl-remove-if-not #'cadr params) "&")
+               (cl-remove-if-not #'cadr params)
+               url-build-query-string
+               (concat prefix "?")))
+        (arg current-prefix-arg))
+    (if arg
+        url
+      (browse-url url))))
 
 (defvar datadog-metrics--time-format "%Y-%m-%dT%H:%M:%S%z")
 
@@ -370,6 +376,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                 (princ (format "URL: %s\n" url))
                 (princ (format "Body: %s\n" (json-encode body)))
                 (princ (format "Error: %s" err)))))))
+
 
 (defun datadog-metric (query)
   "Plot metric from QUERY in Datadog temporary notebook."

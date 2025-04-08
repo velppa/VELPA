@@ -2,8 +2,6 @@
 ;;
 ;; Filename: toggle-function.el
 ;; Description: Helper to create a toggle function.
-;; Author: Pavel Popov <hotter-plazas-0x@icloud.com>
-;; Copyright (C) 2021, Pavel Popov, all rights reserved.
 ;; Created: Fri Feb 27 20:32:14 2009 (-0800)
 ;; Version: 0
 ;; Package-Requires: ()

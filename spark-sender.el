@@ -1,4 +1,4 @@
-G;;; spark-sender.el --- Send region to spark-shell buffer  -*- lexical-binding: t; -*-
+;;; spark-sender.el --- Send region to spark-shell buffer  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024 Pavel Popov
 
@@ -107,11 +107,15 @@ With two universal arguments (C-u C-u), wrap region in curly braces."
   (let ((wrapper (cond ((null arg) #'identity)
                        ((equal arg '(4)) #'spark-sender--wrap-val-in-curly-braces)
                        ((equal arg '(16)) #'spark-sender--wrap-in-curly-braces))))
-    (thread-last
-      (buffer-substring-no-properties beg end)
-      wrapper
-      (format "%s\n")
-      (comint-send-string spark-sender-target-buffer-name))))
+    (message "Sent %s chars to %s using %s wrapper" (- end beg) spark-sender-target-buffer-name wrapper)
+    (-->
+     (buffer-substring-no-properties beg end)
+     ;; (split-string it (rx eol)) (mapcar (lambda (s) (format "%s " s)) it) (string-join it)
+     (funcall wrapper it)
+     (format "%s \n" it)
+     ;; (message "lines: %s" it)
+     (comint-send-string spark-sender-target-buffer-name it)
+     )))
 
 ;;;###autoload
 ;; (defun spark-sender-send-region (beg end)
