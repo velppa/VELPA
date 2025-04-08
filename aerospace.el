@@ -1,6 +1,6 @@
 ;;; aerospace.el --- Utilities to work with AeroSpace  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2024 Pavel Popov
+;; Copyright (C) 2024, 2025 Pavel Popov
 
 ;; Author: Pavel Popov <hotter-plazas-0x@icloud.com>
 ;; URL: https://github.com/velppa/velpa/tree/main/aerospace.el
@@ -46,7 +46,7 @@
     (default-root-container-orientation . "auto")
     (key-mapping.preset . "qwerty")
     (on-focused-monitor-changed . ("move-mouse monitor-lazy-center")))
-  "Root AeroSpace configuration")
+  "Root AeroSpace configuration.")
 
 
 (defvar aerospace-modes-config
@@ -126,7 +126,19 @@
                           (cons (make-symbol (format "%s" x))
                                 (list (format "move-node-to-workspace %s" x) "mode main")))
                         (number-sequence 0 9)))))
-  "AeroSpace mode bindings configuration")
+  "AeroSpace mode bindings configuration.")
+
+
+(defvar aerospace-callbacks-config
+  `((on-window-detected . (((if.app-id . "org.gnu.Emacs")
+                            (run . ("move-node-to-workspace 2")))
+                           ((if.app-id . "com.apple.Safari")
+                            (run . ("move-node-to-workspace 3")))
+                           ((if.app-id . "org.yanex.marta")
+                            (run . ("move-node-to-workspace 6")))
+                           ((if.app-id . "com.mitchellh.ghostty")
+                            (run . ("move-node-to-workspace 0"))))))
+  "AeroSpace callbacks configuration.")
 
 
 (defun aerospace-gap-block (size)
@@ -159,6 +171,7 @@
    (append
     aerospace-root-config
     aerospace-modes-config
+    aerospace-callbacks-config
     (list (aerospace-gap-block aerospace-gap)))))
 
 ;;;###autoload
