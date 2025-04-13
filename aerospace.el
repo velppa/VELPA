@@ -132,8 +132,8 @@
 (defvar aerospace-callbacks-config
   `((on-window-detected . (((if.app-id . "org.gnu.Emacs")
                             (run . ("move-node-to-workspace 2")))
-                           ((if.app-id . "com.apple.Safari")
-                            (run . ("move-node-to-workspace 3")))
+                           ;; ((if.app-id . "com.apple.Safari")
+                           ;;  (run . ("move-node-to-workspace 3")))
                            ((if.app-id . "org.yanex.marta")
                             (run . ("move-node-to-workspace 6")))
                            ((if.app-id . "com.mitchellh.ghostty")
