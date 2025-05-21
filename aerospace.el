@@ -34,7 +34,7 @@
   "~/.config/aerospace/aerospace.toml"
   "Path to AeroSpace config file.")
 
-(defvar aerospace-gap 10 "Gap between windows.")
+(defvar aerospace-gap 0 "Gap between windows.")
 
 (defvar aerospace-root-config
   `(;;
@@ -59,10 +59,10 @@
                   (alt-tab . "workspace-back-and-forth")
                   (alt-shift-tab . "move-workspace-to-monitor --wrap-around next")
                   ;;
-                  (cmd-left . "focus left")
-                  (cmd-down . "focus down")
-                  (cmd-up . "focus up")
-                  (cmd-right . "focus right")
+                  ;; (cmd-left . "focus left")
+                  ;; (cmd-down . "focus down")
+                  ;; (cmd-up . "focus up")
+                  ;; (cmd-right . "focus right")
                   ;;
                   (f9 . "mode keys")
                   (f13 . "mode keys")
@@ -84,10 +84,10 @@
                   ;;
                   (m . "mode move")
                   ;;
-                  ;; (h . "focus left")
-                  ;; (j . "focus down")
-                  ;; (k . "focus up")
-                  ;; (l . "focus right")
+                  (h . "focus left")
+                  (j . "focus down")
+                  (k . "focus up")
+                  (l . "focus right")
                   ;;
                   (minus . "resize smart -50")
                   (equal . "resize smart +50")

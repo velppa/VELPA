@@ -99,7 +99,7 @@ The wrapping happens only if the input string starts with `val
 ;;;; Commands
 ;;;###autoload
 (defun spark-sender-send (beg end arg)
-  "Send current region to *spark-shell* buffer.
+  "Send current region to `spark-sender-target-buffer-name' buffer.
 
 With one universal argument (C-u), wrap val in curly braces.
 With two universal arguments (C-u C-u), wrap region in curly braces."
@@ -116,6 +116,15 @@ With two universal arguments (C-u C-u), wrap region in curly braces."
      ;; (message "lines: %s" it)
      (comint-send-string spark-sender-target-buffer-name it)
      )))
+
+
+(defun spark-sender-build-sender (target-buffer)
+  "Returns function that invokes `spark-sender-send` to TARGET-BUFFER."
+  (lambda (beg end arg)
+    (interactive "r\nP")
+    (let ((spark-sender-target-buffer-name target-buffer))
+      (spark-sender-send beg end arg))))
+
 
 ;;;###autoload
 ;; (defun spark-sender-send-region (beg end)

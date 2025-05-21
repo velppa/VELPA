@@ -55,7 +55,7 @@ with given LINKTYPE."
       `("--no-line-number" "--no-filename" "--only-matching" "--replace" "$1" ,pattern)
       posts))))
 
-(defvar my-org-publish-notes-dir "~/Documents/Notes")
+(defvar my-org-publish-notes-dir "~/Notes")
 (defvar my-org-publish-repos-dir "~/Developer/src/github.com/microsoft")
 (defvar my-org-publish-repos '("vscode" "TypeScript"))
 

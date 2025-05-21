@@ -81,6 +81,10 @@ Supported resources:
                                        (one-or-more digit)
                                        ":application/" (group (one-or-more (not whitespace)))
                                        "/configurationprofile/" (group (one-or-more (not whitespace)))))
+         (sfn-arn-rx (rx "arn:aws:states:"
+                         (one-or-more (not whitespace)) ":"
+                         (one-or-more digit)
+                         ":stateMachine:" (one-or-more (not whitespace))))
          (sfn-execution-arn-rx (rx "arn:aws:states:"
                                    (one-or-more (not whitespace)) ":"
                                    (one-or-more digit)
@@ -110,6 +114,9 @@ Supported resources:
            (when (string-match appconfig-profile-arn-rx arn)
              (format "https://%s.console.aws.amazon.com/systems-manager/appconfig/applications/%s/featureflags/%s/versions?region=%s"
                      region (match-string 1 arn) (match-string 2 arn) region))
+           (when (string-match sfn-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/states/home?region=%s#/statemachines/view/%s"
+                     region region (url-encode-url arn)))
            (when (string-match sfn-execution-arn-rx arn)
              (format "https://%s.console.aws.amazon.com/states/home?region=%s#/v2/executions/details/%s"
                      region region arn))
@@ -131,19 +138,25 @@ Supported resources:
       (user-error "url is nil"))))
 
 
-(defun aws-browse-kubernetes-node (beg end)
-  "Browse EC2 instance of kubernetes node an the region BEG to END."
+;;;###autoload
+(defun aws-browse-region (beg end)
   (interactive "r")
-  (kubernetes-kubectl-get
-   (format "node/%s" (buffer-substring-no-properties beg end))
-   nil
-   (lambda (resp)
-     (--> resp
-          (alist-get 'spec it)
-          (alist-get 'providerID it)
-          (split-string it (rx "/"))
-          last car
-          aws-browse))))
+  (aws-browse (buffer-substring-no-properties beg end)))
+
+
+;; (defun aws-kubectl-get-node (beg end)
+;;   "Browse EC2 instance of kubernetes node an the region BEG to END."
+;;   (interactive "r")
+;;   (kubernetes-kubectl-get
+;;    (format "node/%s" (buffer-substring-no-properties beg end))
+;;    nil
+;;    (lambda (resp)
+;;      (--> resp
+;;           (alist-get 'spec it)
+;;           (alist-get 'providerID it)
+;;           (split-string it (rx "/"))
+;;           last car
+;;           aws-browse))))
 
 ;;;; Functions
 
