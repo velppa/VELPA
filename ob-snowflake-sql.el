@@ -82,13 +82,16 @@
 (defun org-babel-execute:snowflake-sql (body params)
   "Execute the SQL statements in BODY with PARAMS in Snowflake using Clojure."
   (message "Executing \"%s\"" body)
-  (let ((role (or (cdr (assq :role params)) "SQD_SEARCH")))
+  (let ((keyword-args (mapcan (lambda (param)
+                                (list (car param)
+                                      (format "%s" (cdr param))))
+                              params)))
     (ob-clojure-eval-with-cider
      (thread-last
        ;; first item is a block of Clojure code
        `(do
          (require '[velppa.snowflake :as sf])
-         (sf/execute-print! [,body] :role ,role))
+         (sf/execute-print! [,body] ,@keyword-args))
        prin1-to-string)
      params)))
 

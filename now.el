@@ -15,9 +15,7 @@
 
 
 (defvar now-priority-category-alist
-  '(("Price Tracker" . "https://www.notion.so/viocom/Price-Tracker-Roadmap-120f584cf1ae48ae8cdacc73fe1b4928")
-    ("Price History" . "https://www.notion.so/viocom/Price-Tracker-Roadmap-120f584cf1ae48ae8cdacc73fe1b4928")
-    ("Redpanda" . "https://www.notion.so/viocom/Redpanda-Roadmap-8d82434b5ffa4af2b27273ea23bc711d"))
+  '(("example" . "https://www.notion.so/foobar/example-120f584cf1ae48ae8cdacc73fe1b4928"))
   "Mapping from PRIORITY_CATEGORY property to URL linked to it.")
 
 (defun now--goto-node-by-id (id)
@@ -43,7 +41,7 @@
   "Format URL as org-mode link."
   (let ((shortcut-story-rx (rx "[[" (group "https://app.shortcut.com/"
                                            (one-or-more anything)
-                                           (or "/story/" "/epic/")
+                                            "/" (group (or "story" "epic" "objective")) "/"
                                            (group (one-or-more digit))
                                            (optional "/" (one-or-more (not "]"))))
                                "]" (optional (one-or-more anything)) "]"))
@@ -52,9 +50,11 @@
     (when url
       (or (when (string-match shortcut-story-rx url)
             (let* ((raw-url (match-string 1 url))
-                   (id (match-string 2 url))
-                   (title (format "sc-%s" id)))
-              (format "[[%s][%s]]" raw-url title)))
+                   (kind (match-string 2 url))
+                   (id (match-string 3 url))
+                   ;; (title (format "sc-%s" id))
+                   )
+              (format "[[%s][%s]]" raw-url kind)))
           (when (string-match org-link-rx url)
             (let ((raw-url (match-string 1 url))
                   ;; (title (match-string 2 url))
@@ -63,18 +63,6 @@
                       )))
           (format "[[%s][link]]" url)))))
 
-(defun now--shortcut-story-ebut (org-link org-id)
-  "Returns hyperbole explicit button + Org Mode link"
-  (let ((expr (rx "[[" (group (one-or-more anything) "/story/"
-                              (group (one-or-more digit)) "/"
-                              (one-or-more anything))
-                  "]" (one-or-more anything) "]")))
-    (when (string-match expr org-link)
-      (let* ((url (match-string 1 org-link))
-             (story-id (match-string 2 org-link))
-             (label (format "sc-%s" story-id)))
-        (when (now--create-hyp-ebut label org-id)
-          (format "<(%s)> [[%s][link]]" label url))))))
 
 (comment
  (now--format-url "[[https://app.shortcut.com/findhotel/story/133422/consume-raw-clicks-in-price-accuracy-heater][Consume raw clicks in Price Accuracy Heater | Shortcut]]")
@@ -110,6 +98,9 @@ when link, make it a link by looking up in `now-priority-category-alist'."
                         (substring it 1 15)
                         (format "[%s]" it))))
     (string-clean-whitespace (string-join (remove nil `(,title ,category ,url ,closed-date)) " "))))
+
+(comment
+ (assoc "Comprehensive Hotel Content" now-priority-category-alist))
 
 ;; (cl-defun now-hyperbolized-item (&key (todo t))
 ;;   "Formats heading with Explicit Hyperbole button."
