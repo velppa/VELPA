@@ -53,20 +53,14 @@
   `((mode.main.binding
      . ,(append '((cmd-shift-7 . "layout h_tiles")
                   (cmd-shift-6 . "layout h_accordion")
-                  (cmd-shift-9 . "focus left")
-                  (cmd-shift-0 . "focus right")
+                  (cmd-shift-9 . "focus dfs-prev --boundaries-action wrap-around-the-workspace")
+                  (cmd-shift-0 . "focus dfs-next --boundaries-action wrap-around-the-workspace")
                   ;;
                   (alt-tab . "workspace-back-and-forth")
-                  (alt-shift-tab . "move-workspace-to-monitor --wrap-around next")
-                  ;;
-                  ;; (cmd-left . "focus left")
-                  ;; (cmd-down . "focus down")
-                  ;; (cmd-up . "focus up")
-                  ;; (cmd-right . "focus right")
+                  ;; (alt-shift-tab . "move-workspace-to-monitor --wrap-around next")
                   ;;
                   (f9 . "mode keys")
                   (f13 . "mode keys")
-                  ;; (f14 . "move-workspace-to-monitor --wrap-around next")
                   )
                 (mapcar (lambda (x)
                           (cons (make-symbol (format "alt-%s" x))
@@ -76,7 +70,6 @@
      . ,(append '((esc . "mode main")
                   (f9 . "mode main")
                   (f13 . "mode main")
-                  ;; (g . "mode main")
                   ;; (tab . "mode main")
                   ;;
                   (period . "layout tiles horizontal vertical")
@@ -84,29 +77,31 @@
                   ;;
                   (m . "mode move")
                   ;;
-                  (h . "focus left")
-                  (j . "focus down")
-                  (k . "focus up")
-                  (l . "focus right")
+                  (h . "focus left --boundaries-action wrap-around-the-workspace")
+                  (j . "focus down --boundaries-action wrap-around-the-workspace")
+                  (k . "focus up --boundaries-action wrap-around-the-workspace")
+                  (l . "focus right --boundaries-action wrap-around-the-workspace")
+                  (n . "focus dfs-next --boundaries-action wrap-around-the-workspace")
+                  (p . "focus dfs-prev --boundaries-action wrap-around-the-workspace")
                   ;;
                   (minus . "resize smart -50")
                   (equal . "resize smart +50")
                   ;;
                   (g . "flatten-workspace-tree") ;; mnemonics - C-g => escape
-                  ;; (r . "reload-config")
+                  (r . "reload-config")
                   (f . "layout floating tiling")
                   (backspace . "close-all-windows-but-current")
                   ;; workspaces on Planck
-                  (q . ("workspace 1" "mode main"))
-                  (w . ("workspace 2" "mode main"))
-                  (e . ("workspace 3" "mode main"))
-                  (r . ("workspace 4" "mode main"))
-                  (t . ("workspace 5" "mode main"))
-                  (y . ("workspace 6" "mode main"))
-                  (u . ("workspace 7" "mode main"))
-                  (i . ("workspace 8" "mode main"))
-                  (o . ("workspace 9" "mode main"))
-                  (p . ("workspace 0" "mode main"))
+                  ;; (q . ("workspace 1" "mode main"))
+                  ;; (w . ("workspace 2" "mode main"))
+                  ;; (e . ("workspace 3" "mode main"))
+                  ;; (r . ("workspace 4" "mode main"))
+                  ;; (t . ("workspace 5" "mode main"))
+                  ;; (y . ("workspace 6" "mode main"))
+                  ;; (u . ("workspace 7" "mode main"))
+                  ;; (i . ("workspace 8" "mode main"))
+                  ;; (o . ("workspace 9" "mode main"))
+                  ;; (p . ("workspace 0" "mode main"))
                   ;;
                   (left . ("join-with left" "mode main"))
                   (down . ("join-with down" "mode main"))

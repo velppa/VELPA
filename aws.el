@@ -181,6 +181,9 @@ Supported resources:
                do (setq total-size (+ total-size size))))
     (/ total-size 1024.0 1024.0 1024.0)))
 
+(defun aws-async-shell-command (beg end)
+  "Run async-shell-command on a region.")
+
 ;;;;; Public
 
 ;;;;; Private

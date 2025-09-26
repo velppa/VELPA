@@ -37,16 +37,28 @@
     (ebut:create 'btn)
     ))
 
+(defconst now--org-link-rx
+  (rx "[[" (group (one-or-more (not "]"))) "]"
+      (optional "[" (group (one-or-more anything)) "]") "]")
+  "Regexp to extract description and url from Org Mode link.")
+
+
+(defun now--format-org-link (url &optional title)
+  "Format LINK using TITLE if provided, replacing original title."
+  (when (string-match now--org-link-rx url)
+    (let ((raw-url (match-string 1 url))
+          (existing-title (match-string 2 url)))
+      (format "[[%s][%s]]" raw-url (or title existing-title)))))
+
+
 (defun now--format-url (url)
   "Format URL as org-mode link."
   (let ((shortcut-story-rx (rx "[[" (group "https://app.shortcut.com/"
                                            (one-or-more anything)
-                                            "/" (group (or "story" "epic" "objective")) "/"
+                                           "/" (group (or "story" "epic" "objective")) "/"
                                            (group (one-or-more digit))
-                                           (optional "/" (one-or-more (not "]"))))
-                               "]" (optional (one-or-more anything)) "]"))
-        (org-link-rx (rx "[[" (group (one-or-more (not "]"))) "]"
-                         (optional "[" (group (one-or-more anything)) "]") "]")))
+                                           (optional (one-or-more (not "]"))))
+                               "]" (optional (one-or-more anything)) "]")))
     (when url
       (or (when (string-match shortcut-story-rx url)
             (let* ((raw-url (match-string 1 url))
@@ -55,12 +67,7 @@
                    ;; (title (format "sc-%s" id))
                    )
               (format "[[%s][%s]]" raw-url kind)))
-          (when (string-match org-link-rx url)
-            (let ((raw-url (match-string 1 url))
-                  ;; (title (match-string 2 url))
-                  )
-              (format "[[%s][link]]" raw-url ;; (or title "link")
-                      )))
+          (now--format-org-link url "link")
           (format "[[%s][link]]" url)))))
 
 
@@ -78,26 +85,67 @@
 (cl-defun now-roadmap-item (&key (todo t) (priority t) (closed t) (category t))
   "Formats heading as a Roadmap item.
 
-When CATEGORY is t, add PRIORITY_CATEGORY property to the title,
+When CATEGORY is t, add MILESTONE_CATEGORY property to the title,
 when link, make it a link by looking up in `now-priority-category-alist'."
   (let* ((props (org-entry-properties))
          (title (org-get-heading t (not todo) (not priority) t))
          (url (now--format-url (cdr (assoc-string "URL" props))))
          (category (when category
-                     (-some--> (assoc-string "PRIORITY_CATEGORY" props)
+                     (-some--> (assoc-string "MILESTONE_CATEGORY" props)
                        cdr
                        (if-let ((priority-url
                                  (and (equal category 'link)
                                       (assoc it now-priority-category-alist))))
-                           (format "[[[%s][%s]]]" (cdr priority-url) it)
-                         (format "[%s]" it)))))
-         (tags (cdr (assoc-string "TAGS" props)))
+                           (format "| [[%s][%s]] |" (cdr priority-url) it)
+                         (format "| %s |" it)))))
+         ;; (tags (cdr (assoc-string "TAGS" props)))
          (closed-date (-some--> closed
                         identity
                         (org-entry-get nil "CLOSED")
                         (substring it 1 15)
                         (format "[%s]" it))))
     (string-clean-whitespace (string-join (remove nil `(,title ,category ,url ,closed-date)) " "))))
+
+(comment
+ (setq now-items-props '()))
+
+
+(cl-defun now-milestone (&key (include-priority t) (include-closed t) (dummy t))
+  "Formats heading as a Roadmap item.
+
+When CATEGORY is t, add MILESTONE_CATEGORY property to the title,
+when link, make it a link by looking up in `now-priority-category-alist'."
+  (let* ((props (org-entry-properties))
+         (title (org-get-heading t t t t))
+         (todo-state (cdr (assoc "TODO" props)))
+         (priority (cdr (assoc "PRIORITY" props)))
+         (owner (-some--> (assoc "MILESTONE_OWNER" props) cdr))
+         (roadmap-item (-some--> (assoc "ROADMAP_ITEM" props) cdr (now--format-org-link it "roadmap item")))
+         (url (now--format-url (cdr (assoc-string "URL" props))))
+         (category (-some--> (assoc-string "MILESTONE_CATEGORY" props)
+                     cdr
+                     (format "%s" it)))
+         ;; (tags (cdr (assoc-string "TAGS" props)))
+         (closed-date (and include-closed
+                           (-some-->
+                               (assoc "CLOSED" props)
+                             cdr
+                             (substring it 1 15)
+                             (format "[%s]" it)))))
+    ;; (add-to-list 'now-items-props props)
+    (-->
+     `(,todo-state
+       ,(and include-priority priority)
+       ,title
+       ,(or category "")
+       ,(or owner "")
+       ,(or roadmap-item "")
+       ,(or url "")
+       ,closed-date)
+     (remove nil it)
+     (string-join it " | ")
+     string-clean-whitespace
+     (format "%s|\n" it))))
 
 (comment
  (assoc "Comprehensive Hotel Content" now-priority-category-alist))
@@ -123,13 +171,13 @@ when link, make it a link by looking up in `now-priority-category-alist'."
 ;;      " ")))
 
 (cl-defun now-sort-by (&key (by 'closed))
-  "Return a function to sort strings by BY criteria."
+  "Return a function to sort strings BY criteria."
   (lambda (s1 s2)
     (let* ((expr (rx "[" (group (repeat 4 (any "0-9")) "-"
                                 (repeat 2 (any "0-9")) "-"
                                 (repeat 2 (any "0-9")) " "
                                 (repeat 3 (any "A-Za-z")))
-                     "]" eol))
+                     "]"))
            (date1 (when (string-match expr s1) (match-string 1 s1)))
            (date2 (when (string-match expr s2) (match-string 1 s2))))
       (if (and date1 date2)

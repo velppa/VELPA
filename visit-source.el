@@ -48,12 +48,18 @@ recognized.
                      (buffer-substring-no-properties p1 p2))))
            (match (and path (string-match "^\\([^: ]*[/.][^: ]*\\)\\(:[0-9]+\\)?\\(:[0-9]+\\)?:?" path)))
            (fpath (if match (match-string 1 path) path))
+           (project-file (if (and
+                              (not (file-exists-p fpath))
+                              (project-root (project-current)))
+                             (string-trim (shell-command-to-string (format "rg --files | grep \"%s\" | head -n 1" fpath)))
+                           fpath))
            (line-no (if (and match (match-string 2 path)) (string-to-number (substring (match-string 2 path) 1)) 0))
-           (col-no (if (match-string 3 path) (string-to-number (substring (match-string 3 path) 1)) 0)))
+           (col-no (if (match-string 3 path) (string-to-number (substring (match-string 3 path) 1)) 0))
+           (_ (message "path: %s, match: %s, fpath: %s, project-file: %s, line-no: %s, col-no: %s" path match fpath project-file line-no col-no)))
       (and
        match
-       (file-exists-p fpath)
-       (find-file-other-window fpath)
+       (file-exists-p project-file)
+       (find-file-other-window project-file)
        (when line-no
          (goto-char (point-min)) ;; goto-line is only for interactive use
          (forward-line (1- line-no))

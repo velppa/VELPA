@@ -84,7 +84,8 @@
   (interactive)
   (mcp-deregister-tools)
   (mcp-make-tools)
-  (mcp-register-tools))
+  (mcp-register-tools)
+  (message "mcp-make-and-register-tools finished"))
 
 
 (defun mcp-get-resource (connection-name resource-uri)

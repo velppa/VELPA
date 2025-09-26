@@ -27,5 +27,31 @@ git clone https://github.com/velppa/velpa.git
 (require 'quartz)
    #+end_src
 
+
+* Testing
+
+1. *From Emacs interactively:*
+   #+begin_src emacs-lisp
+   ;; Load the test file
+   M-x load-file RET spark-sender-test.el RET
+
+   ;; Run the specific test
+   M-x ert RET spark-sender-test--wrap-val-in-curly-braces RET
+
+   ;; Or run all tests with prefix "spark-sender-test"
+   M-x ert RET spark-sender-test RET
+   #+end_src
+
+2. *From command line:*
+   #+begin_src bash
+   emacs -batch -l spark-sender.el -l spark-sender-test.el -f ert-run-tests-batch-and-exit
+   #+end_src
+
+3. *From within Emacs Lisp:*
+   #+begin_src emacs-lisp
+   (load-file "spark-sender-test.el")
+   (ert-run-tests-interactively "spark-sender-test")
+   #+end_src
+
 * Licence
 MIT

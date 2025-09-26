@@ -80,14 +80,17 @@
 ;;;;; Private
 
 (defun spark-sender--wrap-val-in-curly-braces (input-str)
-  "Wrap the <code> part in curly braces.
-
-The wrapping happens only if the input string starts with `val
-<name> = <code>'."
-  (if (string-match "val \\([[:alnum:]]+\\) =\\(\\(.\\|\n\\)*\\)" input-str)
-      (let ((name (match-string 1 input-str))
-            (code (match-string 2 input-str)))
-        (format "val %s = { %s }" name code))
+  "For val definitions in INPUT-STR, wrap the <code> part in curly braces."
+  (if (string-match (rx (zero-or-more space) ; Handle leading whitespace
+                        (group (optional "implicit ") "val ")
+                        (group (one-or-more (not "="))) ; Match until =
+                        (zero-or-more space) "=" (zero-or-more space) ; Handle spaces around =
+                        (group (zero-or-more anything)))
+                    input-str)
+      (let ((val (match-string 1 input-str))
+            (name (match-string 2 input-str))
+            (code (string-trim (match-string 3 input-str))))
+        (format "%s%s= { %s }" val name code))
     input-str))
 
 (defun spark-sender--wrap-in-curly-braces (input-str)
@@ -117,6 +120,27 @@ With two universal arguments (C-u C-u), wrap region in curly braces."
      (comint-send-string spark-sender-target-buffer-name it)
      )))
 
+(defun spark-sender-send-to-tmux (beg end arg)
+  "Send current region to `spark-sender-target-buffer-name' window in tmux.
+
+With one universal argument (C-u), wrap val in curly braces.
+With two universal arguments (C-u C-u), wrap region in curly braces."
+  (interactive "r\nP")
+  (let ((wrapper (cond ((null arg) #'identity)
+                       ((equal arg '(4)) #'spark-sender--wrap-val-in-curly-braces)
+                       ((equal arg '(16)) #'spark-sender--wrap-in-curly-braces))))
+    (message "Sent %s chars to %s using %s wrapper" (- end beg) spark-sender-target-buffer-name wrapper)
+    (-->
+     (buffer-substring-no-properties beg end)
+     ;; (split-string it (rx eol)) (mapcar (lambda (s) (format "%s " s)) it) (string-join it)
+     (funcall wrapper it)
+     (format "%s \n" it)
+     ;; (message "lines: %s" it)
+     ;; (format "send-keys -t %s \"%s\"" spark-sender-target-buffer-name it)
+     ;; (async-shell-command (format "tmux %s" it))
+     (start-process "tmux" nil "tmux" "send-keys" "-t" spark-sender-target-buffer-name it)
+     )))
+
 
 (defun spark-sender-build-sender (target-buffer)
   "Returns function that invokes `spark-sender-send` to TARGET-BUFFER."
@@ -124,6 +148,14 @@ With two universal arguments (C-u C-u), wrap region in curly braces."
     (interactive "r\nP")
     (let ((spark-sender-target-buffer-name target-buffer))
       (spark-sender-send beg end arg))))
+
+
+(defun spark-sender-build-tmux-sender (tmux-target)
+  "Returns function that invokes `spark-sender-send-to-tmux` to TMUX-TARGET."
+  (lambda (beg end arg)
+    (interactive "r\nP")
+    (let ((spark-sender-target-buffer-name tmux-target))
+      (spark-sender-send-to-tmux beg end arg))))
 
 
 ;;;###autoload

@@ -71,7 +71,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
   "Spans columns.")
 
 (defvar datadog-default-from
-  '(day -14)
+  '(day -7)
   "Default value for FROM timestamp.")
 
 ;;;; Commands
@@ -172,7 +172,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 
 ;;;###autoload
 (cl-defun datadog-logs (query &key
-                              (from datadog-default-from)
+                              (from '(day -7))
                               (to (ts-now))
                               (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
