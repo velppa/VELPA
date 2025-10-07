@@ -291,7 +291,7 @@ It's recommended you keep it as the default value."
               (search-forward "videoId" nil t))
     (let* ((videoid-start (point))
            (videoid-end (search-forward ","))
-           (videoid (buffer-substring
+           (videoid (buffer-substring-no-properties
                      (+ videoid-start 3)
                      (- videoid-end 2))))
       (unless (or (member videoid video-ids)
@@ -302,7 +302,7 @@ It's recommended you keep it as the default value."
         (search-forward "text")
         (let* ((title-start (point))
                (title-end (search-forward ",\""))
-               (title (buffer-substring
+               (title (buffer-substring-no-properties
                        (+ title-start 3)
                        (- title-end 5))))
           (if (string-match-p "vssLoggingContext" title)
@@ -325,7 +325,7 @@ It's recommended you keep it as the default value."
 		(search-forward "watch?v" nil t))
       (let* ((videoid-start (point))
              (videoid-end (search-forward ">"))
-             (videoid (buffer-substring
+             (videoid (buffer-substring-no-properties
                        (+ videoid-start 1)
                        (- videoid-end 2))))
 	(unless (or (member videoid video-ids)
@@ -336,7 +336,7 @@ It's recommended you keep it as the default value."
           (search-forward "\"auto\">")
           (let* ((title-start (point))
 		 (title-end (search-forward ">"))
-		 (title (buffer-substring
+		 (title (buffer-substring-no-properties
 			 (+ title-start 0)
 			 (- title-end 4))))
             (if (string-match-p "vssLoggingContext" title)

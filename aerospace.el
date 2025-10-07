@@ -65,6 +65,7 @@
                   (keypadPlus . "resize smart +50")
                   (keypadEqual . "layout h_accordion")
                   (keypadDivide . "layout h_tiles")
+                  (keypadMultiply . "layout floating tiling")
                   (keypadDecimalMark . "focus dfs-next --boundaries-action wrap-around-the-workspace")
                   (keypadEnter . "mode keys")
                   ;; (cmd-shift-0 . "focus dfs-next --boundaries-action wrap-around-the-workspace")
