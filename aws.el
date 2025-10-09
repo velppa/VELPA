@@ -68,6 +68,8 @@ Supported resources:
 - arn:aws:iam::123456789012:role/role-name - IAM role
 - arn:aws:iam::123456789012:policy/policy-name - IAM policy
 - ip-172-50-18-214.eu-west-1.compute.internal - private EC2 instance DNS name
+- arn:aws:appconfig:eu-west-1:123456789012:application/XXXXX/configurationprofile/YYYYY - AppConfig Configuration Profile
+- arn:aws:secretsmanager:eu-west-1:123456789012:secret:name-qwer-bXXKVX - Secrets Manager secret
 "
   (interactive)
   (let* ((security-group-rx (rx (group bol "sg-" (one-or-more (not whitespace)))))
@@ -81,6 +83,10 @@ Supported resources:
                                        (one-or-more digit)
                                        ":application/" (group (one-or-more (not whitespace)))
                                        "/configurationprofile/" (group (one-or-more (not whitespace)))))
+         (secret-arn-rx (rx "arn:aws:secretsmanager:"
+                            (one-or-more (not whitespace)) ":"
+                            (one-or-more digit)
+                            ":secret:" (group (one-or-more (not whitespace)))))
          (sfn-arn-rx (rx "arn:aws:states:"
                          (one-or-more (not whitespace)) ":"
                          (one-or-more digit)
@@ -114,6 +120,11 @@ Supported resources:
            (when (string-match appconfig-profile-arn-rx arn)
              (format "https://%s.console.aws.amazon.com/systems-manager/appconfig/applications/%s/featureflags/%s/versions?region=%s"
                      region (match-string 1 arn) (match-string 2 arn) region))
+           (when (string-match secret-arn-rx arn)
+             (format "https://%s.console.aws.amazon.com/secretsmanager/secret?name=%s&region=%s"
+                     region
+                     (replace-regexp-in-string "-[^-]*$" "" (match-string 1 arn))
+                     region))
            (when (string-match sfn-arn-rx arn)
              (format "https://%s.console.aws.amazon.com/states/home?region=%s#/statemachines/view/%s"
                      region region (url-encode-url arn)))
