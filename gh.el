@@ -36,9 +36,9 @@
 ;; - Configurable PR limits
 ;;
 ;; Usage:
-;;   M-x gh-open-pr           ; Browse open PRs (default: 30)
-;;   C-u M-x gh-open-pr       ; Browse all PRs (up to 100)
-;;   C-u 50 M-x gh-open-pr    ; Browse 50 PRs of all states
+;;   M-x gh-browse-pr           ; Browse open PRs (default: 30)
+;;   C-u M-x gh-browse-pr       ; Browse all PRs (up to 100)
+;;   C-u 50 M-x gh-browse-pr    ; Browse 50 PRs of all states
 ;;
 ;; Requirements:
 ;; - GitHub CLI (gh) must be installed and authenticated
@@ -84,27 +84,31 @@ STATE can be \"open\", \"closed\", or \"all\" (default: \"open\")."
        (user-error "Failed to list %ss: %s" (symbol-name kind) (error-message-string err))))))
 
 ;;;###autoload
-(defun gh-open-pr (arg)
-  "Select Github repository, fetch PRs, and open selected PR in browser.
+(defun gh-browse-pr (&optional repo arg)
+  "Open selected pull request from repository REPO in a browser.
 With \\[universal-argument], fetch all PRs (up to 100).
 With numeric prefix ARG, fetch that many PRs.
 
-The function prompts for a repository in the format \"owner/name\"
+If REPO is not provided, then function prompts for a repository in the format \"owner/name\"
 and maintains a history of previously accessed repositories."
-  (interactive "P")
-  (let* ((repo (read-string "Repository (owner/name): "
-                            (car gh-repo-history)
-                            'gh-repo-history))
-         (limit (cond
-                 ((null arg) gh-default-pr-limit)
-                 ((equal arg '(4)) 100)
-                 ((numberp arg) arg)
-                 (t gh-default-pr-limit)))
+  (interactive
+   (list nil
+         (cond
+          ((null current-prefix-arg) gh-default-pr-limit)
+          ((equal current-prefix-arg '(4)) 100)
+          ((numberp current-prefix-arg) current-prefix-arg)
+          (t gh-default-pr-limit))))
+  (let* ((repo (or repo
+                   (read-string "Repository (owner/name): "
+                                (car gh-repo-history)
+                                'gh-repo-history)))
+         (limit (or arg gh-default-pr-limit))
          (state (if arg "all" "open"))
-         (gh-prs (gh-list 'pr repo limit state))
-         (pr-alist
-          (mapcar (lambda (pr)
-                    (let-alist pr
+         (kind 'pr)
+         (items (gh-list kind repo limit state))
+         (items-alist
+          (mapcar (lambda (item)
+                    (let-alist item
                       (cons (if (equal state "all")
                                 (format "#%-4s %-8s %-70s %s"
                                         .number
@@ -120,25 +124,26 @@ and maintains a history of previously accessed repositories."
                                           .author.login
                                         (format "%s (%s)" .author.name .author.login))))
                             .url)))
-                  gh-prs)))
-    (unless pr-alist
-      (user-error "No PRs found for repository %s" repo))
+                  items)))
+    (unless items-alist
+      (user-error "No %ss found for repository %s" (symbol-name kind) repo))
     (let* (;; (selection (completing-read
-           ;;             (format "Browse PR (%d total): " (length gh-prs))
-           ;;             pr-alist nil t))
+           ;;             (format "Browse PR (%d total): " (length items))
+           ;;             items-alist nil t))
            (selection (completing-read
-                       (format "Browse PR (%d total): " (length gh-prs))
+                       (format "Browse %s (%d total): " (symbol-name kind) (length items))
                        (lambda (string pred action)
                          (if (eq action 'metadata)
                              '(metadata (display-sort-function . identity))
-                           (complete-with-action action pr-alist string pred)))
+                           (complete-with-action action items-alist string pred)))
                        nil t))
-           (url (alist-get selection pr-alist nil nil #'equal)))
+           (url (alist-get selection items-alist nil nil #'equal)))
       (when url
         (browse-url url)
-        (message "Browsing PR: %s" url)))))
+        (message "Browsing %s: %s" (symbol-name kind) url)))))
 
 
+;;;###autoload
 (defun gh-browse-issue (arg)
   "Select Github repository, fetch issues, and open selected issue in the browser.
 With \\[universal-argument], fetch all issues (up to 100).
