@@ -77,7 +77,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 ;;;; Commands
 
 (defun datadog--browse-url (prefix params)
-  (message "params: %s"                (cl-remove-if-not #'cadr params))
+  (message "params: %s" (cl-remove-if-not #'cadr params))
   (let ((url (thread-last
                ;; (mapconcat
                ;;  (lambda (x) (format "%s=%s" (car x) (url-hexify-string (format "%s" (cadr x)))))
@@ -108,42 +108,6 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
                           (apply #'ts-adjust (seq-concatenate 'list from `(,to)))))
      :to (funcall fmt to))))
 
-(comment
- (datadog--get-time-bounds)
- ;; (:from 1729516835000 :to 1730730035000)
- (datadog--get-time-bounds :from nil :to nil)
- ;; (:from 1729516856000 :to 1730730056000)
-
- (datadog--get-time-bounds-datetime)
- ;; (:from "2024-10-21T15:36:05+0200" :to "2024-11-04T15:36:05+0100")
-
- (datadog--get-time-bounds :from '(day -2))
- ;; (:from 1739177241000 :to 1739350041000)
-
- (datadog--get-time-bounds :from '(day -2) :to (ts-adjust 'day -1 (ts-now)))
- ;; (:from 1730470866000 :to 1730643666000)
- ;; (:from 1730470765000 :to 1730643565000)
- ;; (:from 1730557058000 :to 1730729858000)
-
- (apply #'ts-adjust (seq-concatenate 'list '(day -14) `(,(ts-now))))
- ;; #s(ts nil nil nil nil nil nil nil nil nil nil nil ...)
-
- (datadog--get-time-bounds :from '(hour -2))
- ;; (:from 1730722887000 :to 1730730087000)
-
- (pcase-let
-     ((`(:from ,from :to ,to) (datadog--get-time-bounds :from '(hour -2))))
-   (message "from: %s, to: %s" from to))
- ;; "from: 1730722917000, to: 1730730117000"
-
- (url-hexify-string "service=foobar")
- ;; "service%3Dfoobar"
- (url-unhex-string "service%3Acancel-price-watch")
- ;; "service:cancel-price-watch"
- (concat  (format "https://app.datadoghq.com/apm/entity/%s" "foo") "?%s")
- ;;
- )
-
 (cl-defun datadog-apm (service &key
                                (from datadog-default-from)
                                (to (ts-now))
@@ -172,7 +136,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
 
 ;;;###autoload
 (cl-defun datadog-logs (query &key
-                              (from '(day -7))
+                              (from '(hour -1))
                               (to (ts-now))
                               (cols "host,service"))
   "Browse logs for QUERY using ARGS plist with optional parameters."
@@ -218,7 +182,7 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
       (datadog--browse-url "https://app.datadoghq.com/event/explorer" params))))
 
 (cl-defun datadog-traces (query &key
-                                (from datadog-default-from)
+                                (from '(hour -1))
                                 (to (ts-now))
                                 (view "spans") ;; or "traces"
                                 (columns datadog-spans-columns))
@@ -256,6 +220,31 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
     (datadog--browse-url
      "https://app.datadoghq.com/orchestration/explorer/pod"
      params)))
+
+(cl-defun datadog-step-functions (&key
+                                  (text-search "")
+                                  (from datadog-default-from)
+                                  (group "")
+                                  (to (ts-now))
+                                  team name)
+  (setq search "")
+  (if team (setq search (format "team:%s %s" team search)))
+  (if name (setq search (format "statemachinename:%s %s" name search)))
+  (cl-destructuring-bind
+        (&key from to)
+      (datadog--get-time-bounds :from from :to to)
+    (let* ((params
+            `((start ,from)
+              (end ,to)
+              (fromUser "false")
+              (group ,group)
+              (text_search ,text-search)
+              (search ,search))))
+      (datadog--browse-url "https://app.datadoghq.com/serverless/aws/step-functions" params))))
+
+;;; https://app.datadoghq.com/serverless/aws/step-functions?search=team%3Acontent%20statemachinename%3Acontent-export-mapping-prod&fromUser=false&group=&start=1763987040000&end=1763990640000&paused=false
+;;;  https://app.datadoghq.com/?search=team%3Acontent&fromUser=false&group=&start=1763987040000&end=1763990640000&paused=false
+;;; https://app.datadoghq.com/serverless/aws/step-functions?search=team%3Acontent&fromUser=false&group=&text_search=mapping&start=1763987040000&end=1763990640000&paused=false
 
 (cl-defun datadog-deployment (query)
   (let* ((params
@@ -394,10 +383,30 @@ Possible values: 1m, 5m, 10m, 15m, 30m, 1h, 4h, 1d, 2d, 1w, 1mo,
            (url (format "https://api.datadoghq.com/api/v1/metrics?%s"
                         (url-build-query-string params))))
       (plz-see 'get url
-               :headers `(("Content-Type" . "application/json")
-                          ("DD-API-KEY" . ,datadog-api-key)
-                          ("DD-APPLICATION-KEY" . ,datadog-app-key))
+               :headers `((Content-Type . "application/json")
+                          (DD-API-KEY . ,datadog-api-key)
+                          (DD-APPLICATION-KEY . ,datadog-app-key))
                :as #'json-read))))
+
+
+;;; Functions
+
+(defun datadog-headers ()
+  "Headers for Datadog REST API."
+  `((Content-Type . "application/json")
+    (DD-API-KEY . ,datadog-api-key)
+    (DD-APPLICATION-KEY . ,datadog-app-key)))
+
+
+(defun datadog-get-case (key)
+  "Retrieves details about the case by KEY."
+  (plz 'get (format "https://api.datadoghq.com/api/v2/cases/%s" key)
+    :headers `((Content-Type . "application/json")
+               (DD-API-KEY . ,datadog-api-key)
+               (DD-APPLICATION-KEY . ,datadog-app-key))
+    :as #'json-read))
+
+;; (setq my-case (datadog-get-case "CONTENT-792"))
 
 ;;;; Footer
 

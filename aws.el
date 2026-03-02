@@ -98,6 +98,7 @@ Supported resources:
          (iam-role-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":role/" (group (one-or-more (not whitespace)))))
          (iam-policy-arn-rx (rx "arn:aws:iam::" (one-or-more digit) ":policy/" (one-or-more (not whitespace))))
          (s3-url-rx (rx "s3://" (group (one-or-more (not "/"))) "/" (group (one-or-more any))))
+         (batch-job-rx (rx "job_id:" (group (one-or-more any))))
          (url
           (or
            (when (string-match ec2-private-dns-rx arn)
@@ -108,6 +109,9 @@ Supported resources:
              (format "https://%s.s3.amazonaws.com/%s"
                      (match-string 1 arn)
                      (match-string 2 arn)))
+           (when (string-match batch-job-rx arn)
+             (format "https://eu-west-1.console.aws.amazon.com/batch/home?region=eu-west-1#jobs/ec2/detail/%s"
+                     (match-string 1 arn)))
            (when (string-match security-group-rx arn)
              (format "https://%s.console.aws.amazon.com/vpcconsole/home?region=%s#SecurityGroup:groupId=%s"
                      region region (match-string 1 arn)))
@@ -154,6 +158,10 @@ Supported resources:
   (interactive "r")
   (aws-browse (buffer-substring-no-properties beg end)))
 
+
+(defun aws-ec2-instance-type (type)
+  (interactive "sInstance type: ")
+  (browse-url (format "https://instances.vantage.sh/aws/ec2/%s?currency=USD" type)))
 
 ;; (defun aws-kubectl-get-node (beg end)
 ;;   "Browse EC2 instance of kubernetes node an the region BEG to END."

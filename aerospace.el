@@ -159,7 +159,7 @@
 
 (defun aerospace-gap-block (size)
   "Return uniform gap configuration block of SIZE."
-  (let ((ratio (* 1.5 (/ 16.0 9.0))))
+  (let ((ratio (* 0.7 (/ 16.0 9.0))))
     `(gaps
       . ((inner.horizontal . ,size)
          (inner.vertical . ,size)

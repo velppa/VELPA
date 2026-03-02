@@ -103,7 +103,7 @@ and maintains a history of previously accessed repositories."
                                 (car gh-repo-history)
                                 'gh-repo-history)))
          (limit (or arg gh-default-pr-limit))
-         (state (if arg "all" "open"))
+         (state (if current-prefix-arg "all" "open"))
          (kind 'pr)
          (items (gh-list kind repo limit state))
          (items-alist

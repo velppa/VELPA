@@ -18,7 +18,7 @@ my ($user, $repo) = $remote_url =~ qr{[:/]([^/]+)/([^/]+?)(?:[.]git)?$};
 
 my $branch = qx{git symbolic-ref HEAD 2> /dev/null};
 $branch =~ s{^refs/heads/}{};
-chomp($branch);
+chomp $branch;
 
 my $git_top = qx{git rev-parse --show-toplevel};
 chomp $git_top;
