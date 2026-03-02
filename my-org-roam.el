@@ -1,12 +1,12 @@
 ;;; my-org-roam.el --- Utilities for org-roam  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025 Pavel Vasilyev
+;; Copyright (C) 2025 Pavel Popov
 
-;; Author: Pavel Vasilyev
+;; Author: Pavel Popov
 ;; URL: https://github.com/velppa/VELPA
 ;; Version: 0.1-pre
-;; Package-Requires: ((emacs "25.2") (org-roam "2.0"))
-;; Keywords: org, roam
+;; Package-Requires: ((emacs "30.1") (org-roam "2.0"))
+;; Keywords: org, org-roam
 
 ;; This file is not part of GNU Emacs.
 
